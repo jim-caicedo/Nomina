@@ -28,6 +28,8 @@ class LiquidarNominaView:
         # Frame de resultados
         self.scroll_resultados = None
         self.label_totales = None
+        self.label_omitidos = None
+        self._omitidos_global = []
 
     def crear_frame(self) -> ctk.CTkFrame:
         """Crea el frame principal de liquidación de nómina."""
@@ -146,6 +148,8 @@ class LiquidarNominaView:
             wraplength=800,
         )
         self.label_totales.grid(row=4, column=0, sticky="ew", padx=20, pady=(0, 20))
+
+        self.label_omitidos = None
 
         return self.frame
 
@@ -279,6 +283,39 @@ class LiquidarNominaView:
         )
         self.label_totales.configure(text=totales_text)
 
+        # Mostrar aviso de conceptos omitidos si existen
+        omitidos = []
+        for registro in registros:
+            conceptos_omitidos = registro.get("conceptos_omitidos") or []
+            for omitido in conceptos_omitidos:
+                omitidos.append({
+                    "empleado_id": registro.get("empleado_id"),
+                    "nombre": omitido.get("nombre", "N/A"),
+                    "razon": omitido.get("razon", "Motivo desconocido"),
+                })
+
+        if self.label_omitidos:
+            self.label_omitidos.destroy()
+            self.label_omitidos = None
+
+        if omitidos:
+            self._omitidos_global = omitidos
+            label_text = (
+                f"⚠️ {len(omitidos)} concepto(s) no se aplicaron. "
+                "Revisa la configuración de conceptos."
+            )
+            self.label_omitidos = ctk.CTkLabel(
+                self.frame,
+                text=label_text,
+                font=ctk.CTkFont(size=13, weight="bold"),
+                text_color=COLORES.get("warning", "#f59e0b"),
+                wraplength=800,
+            )
+            self.label_omitidos.grid(row=5, column=0, sticky="ew", padx=20, pady=(0, 10))
+            self.label_omitidos.bind("<Button-1>", self._mostrar_omitidos_modal)
+        else:
+            self._omitidos_global = []
+
     def _exportar_excel(self):
         """Exporta la nómina a Excel."""
         try:
@@ -339,3 +376,48 @@ class LiquidarNominaView:
             )
         except Exception as e:
             messagebox.showerror("Error", f"Error al exportar: {str(e)}")
+
+    def _mostrar_omitidos_modal(self, event=None):
+        """Muestra una ventana modal con la lista de conceptos omitidos."""
+        if not getattr(self, "_omitidos_global", None):
+            return
+
+        modal = ctk.CTkToplevel(self.frame)
+        modal.title("Conceptos omitidos")
+        modal.geometry("400x300")
+        modal.grab_set()
+
+        header = ctk.CTkLabel(
+            modal,
+            text=f"Conceptos omitidos ({len(self._omitidos_global)})",
+            font=ctk.CTkFont(size=16, weight="bold"),
+        )
+        header.pack(padx=16, pady=(16, 8), anchor="w")
+
+        contenido = ctk.CTkScrollableFrame(modal, corner_radius=12, fg_color="#111827")
+        contenido.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+
+        for omitido in self._omitidos_global:
+            item_frame = ctk.CTkFrame(contenido, fg_color="#1f2937", corner_radius=10)
+            item_frame.pack(fill="x", padx=8, pady=6)
+            item_frame.grid_columnconfigure(0, weight=1)
+
+            ctk.CTkLabel(
+                item_frame,
+                text=f"Empleado ID: {omitido.get('empleado_id', 'N/A')}",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                anchor="w",
+            ).grid(row=0, column=0, sticky="w", padx=10, pady=(8, 2))
+            ctk.CTkLabel(
+                item_frame,
+                text=f"Concepto: {omitido.get('nombre', 'N/A')}",
+                font=ctk.CTkFont(size=11),
+                anchor="w",
+            ).grid(row=1, column=0, sticky="w", padx=10, pady=2)
+            ctk.CTkLabel(
+                item_frame,
+                text=f"Razón: {omitido.get('razon', 'Sin motivo especificado')}",
+                font=ctk.CTkFont(size=11),
+                anchor="w",
+                text_color=COLORES.get("warning", "#f59e0b"),
+            ).grid(row=2, column=0, sticky="w", padx=10, pady=(2, 8))

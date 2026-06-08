@@ -14,13 +14,11 @@ Fórmulas:
 """
 
 from datetime import date
-from typing import Dict, Optional
+from typing import Optional
 from config.constants import DIAS_MES_PROMEDIO
 from models.configuracion import ConfiguracionNomina
-from models.conceptos.concepto_empleado_repository import ConceptoEmpleadoRepositorySQLite
-from models.conceptos.concepto_repository import ConceptoRepositorySQLite
-from models.conceptos.concepto_factory import ConceptoFactory
-from typing import List
+from models.resultado_liquidacion import ItemConcepto, ResultadoLiquidacion
+from services.concepto_aplicador import ConceptoAplicador
 
 
 class LiquidadorNomina:
@@ -35,7 +33,7 @@ class LiquidadorNomina:
         horas_extras: int = 0,
         otros_descuentos: float = 0.0,
         config: Optional[ConfiguracionNomina] = None,
-    ) -> Dict[str, float]:
+    ) -> ResultadoLiquidacion:
         """
         Calcula la nómina para un empleado en un período específico.
 
@@ -49,7 +47,7 @@ class LiquidadorNomina:
             config: ConfiguracionNomina con parámetros legales vigentes
 
         Returns:
-            Diccionario con todos los valores calculados de la nómina
+            ResultadoLiquidacion con todos los valores calculados de la nómina
 
         Raises:
             ValueError: Si los datos no son válidos
@@ -108,50 +106,9 @@ class LiquidadorNomina:
         # 3. Otros Descuentos (si existen)
         otros_descuentos = round(otros_descuentos, 2)
 
-        # ======== CONCEPTOS ASIGNADOS (DEVENGADOS / DEDUCCIONES) ========
-        conceptos_aplicados: List[dict] = []
-        suma_conceptos_devengado = 0.0
-        suma_conceptos_deduccion = 0.0
-
-        try:
-            asign_repo = ConceptoEmpleadoRepositorySQLite()
-            plantilla_repo = ConceptoRepositorySQLite()
-            asignaciones = asign_repo.obtener_por_empleado(getattr(empleado, "id", None)) or []
-
-            for asign in asignaciones:
-                try:
-                    plantilla = None
-                    if asign.concepto_id:
-                        plantilla = plantilla_repo.obtener_por_id(asign.concepto_id)
-
-                    tipo_estrategia = (plantilla.tipo if plantilla and plantilla.tipo else asign.tipo)
-                    nombre_concepto = (plantilla.nombre if plantilla and plantilla.nombre else asign.nombre)
-                    naturaleza = (plantilla.naturaleza if plantilla and getattr(plantilla, 'naturaleza', None) else getattr(asign, 'naturaleza', 'devengado'))
-
-                    valor_base = asign.valor_personalizado if asign.valor_personalizado is not None else (plantilla.valor if plantilla else 0.0)
-                    porcentaje = asign.porcentaje_personalizado if asign.porcentaje_personalizado is not None else (plantilla.porcentaje if plantilla else 0.0)
-                    base_calculo = asign.base_calculo or (plantilla.base_calculo if plantilla else "salario")
-
-                    estrategia = ConceptoFactory.crear(tipo_estrategia, nombre_concepto, valor=valor_base, porcentaje=porcentaje, base_calculo=base_calculo)
-                    valor_calc = round(estrategia.calcular(empleado, fecha_inicio, fecha_cierre, valor_ingresado=0.0), 2)
-
-                    conceptos_aplicados.append({
-                        "nombre": nombre_concepto,
-                        "tipo_estrategia": tipo_estrategia,
-                        "naturaleza": naturaleza,
-                        "valor": valor_calc,
-                    })
-
-                    if naturaleza and naturaleza.lower() == "deduccion":
-                        suma_conceptos_deduccion += valor_calc
-                    else:
-                        suma_conceptos_devengado += valor_calc
-
-                except Exception as e:
-                    print(f"Error aplicando concepto para empleado {getattr(empleado,'id',None)}: {e}")
-                    continue
-        except Exception as e:
-            print(f"Error consultando asignaciones de conceptos: {e}")
+        resultado_conceptos = ConceptoAplicador.aplicar(empleado, fecha_inicio, fecha_cierre)
+        suma_conceptos_devengado = resultado_conceptos["suma_devengados"]
+        suma_conceptos_deduccion = resultado_conceptos["suma_deducciones"]
 
         # Añadir devengados de conceptos al total devengado
         total_devengado = round(total_devengado + suma_conceptos_devengado, 2)
@@ -163,20 +120,28 @@ class LiquidadorNomina:
         # ========== SALARIO NETO ==========
         salario_neto = round(total_devengado - total_deducciones, 2)
 
-        # Retornar diccionario con todos los valores
-        return {
-            "ordinario": ordinario,
-            "auxilio_transporte": auxilio_transporte,
-            "horas_extras": horas_extras_total,
-            "total_devengado": total_devengado,
-            "salario_base_periodo": salario_base_periodo,
-            "descuento_afp": descuento_afp,
-            "descuento_eps": descuento_eps,
-            "otros_descuentos": otros_descuentos,
-            "total_deducciones": total_deducciones,
-            "salario_neto": salario_neto,
-            "conceptos_aplicados": conceptos_aplicados,
-        }
+        conceptos_aplicados = [
+            ItemConcepto(nombre=c["nombre"], tipo=c["tipo"], naturaleza="devengado", valor=c["valor"])
+            for c in resultado_conceptos["devengados"]
+        ] + [
+            ItemConcepto(nombre=c["nombre"], tipo=c["tipo"], naturaleza="deduccion", valor=c["valor"])
+            for c in resultado_conceptos["deducciones"]
+        ]
+
+        return ResultadoLiquidacion(
+            ordinario=ordinario,
+            auxilio_transporte=auxilio_transporte,
+            horas_extras=horas_extras_total,
+            total_devengado=total_devengado,
+            salario_base_periodo=salario_base_periodo,
+            descuento_afp=descuento_afp,
+            descuento_eps=descuento_eps,
+            otros_descuentos=otros_descuentos,
+            total_deducciones=total_deducciones,
+            salario_neto=salario_neto,
+            conceptos_aplicados=conceptos_aplicados,
+            conceptos_omitidos=resultado_conceptos["omitidos"],
+        )
 
     @staticmethod
     def validar_periodo(fecha_inicio: date, fecha_cierre: date) -> bool:

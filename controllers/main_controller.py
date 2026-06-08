@@ -296,6 +296,7 @@ class MainController:
                         horas_extras=horas_extras,
                         config=config_actual,
                     )
+                    calculos_dict = calculos.to_dict()
 
                     # Crear registro de nómina
                     registro = RegistroNomina(
@@ -304,16 +305,16 @@ class MainController:
                         periodo_inicio=fecha_inicio,
                         periodo_cierre=fecha_cierre,
                         dias_laborados=dias_laborados,
-                        salario_base_periodo=calculos["salario_base_periodo"],
-                        auxilio_transporte_periodo=calculos["auxilio_transporte"],
+                        salario_base_periodo=calculos_dict["salario_base_periodo"],
+                        auxilio_transporte_periodo=calculos_dict["auxilio_transporte"],
                         horas_extras=horas_extras,
-                        valor_horas_extras=calculos["horas_extras"],
-                        total_devengado=calculos["total_devengado"],
-                        descuento_afp=calculos["descuento_afp"],
-                        descuento_eps=calculos["descuento_eps"],
-                        otros_descuentos=calculos["otros_descuentos"],
-                        total_deducciones=calculos["total_deducciones"],
-                        salario_neto=calculos["salario_neto"],
+                        valor_horas_extras=calculos_dict["horas_extras"],
+                        total_devengado=calculos_dict["total_devengado"],
+                        descuento_afp=calculos_dict["descuento_afp"],
+                        descuento_eps=calculos_dict["descuento_eps"],
+                        otros_descuentos=calculos_dict["otros_descuentos"],
+                        total_deducciones=calculos_dict["total_deducciones"],
+                        salario_neto=calculos_dict["salario_neto"],
                     )
 
                     # Guardar registro en SQLite
@@ -321,14 +322,14 @@ class MainController:
                     registros_liquidados.append(registro_guardado)
 
                     # Guardar desglose de conceptos aplicados (si los hay)
-                    conceptos_aplicados = calculos.get("conceptos_aplicados", [])
+                    conceptos_aplicados = calculos_dict.get("conceptos_aplicados", [])
                     for c in conceptos_aplicados:
                         try:
                             reg_c = RegistroConceptoNomina(
                                 id=0,
                                 registro_nomina_id=registro_guardado.id,
                                 concepto_nombre=c.get("nombre", ""),
-                                tipo=c.get("tipo_estrategia", ""),
+                                tipo=c.get("tipo", ""),
                                 naturaleza=c.get("naturaleza", "devengado"),
                                 valor_calculado=c.get("valor", 0.0),
                                 metadata=None,
@@ -337,9 +338,9 @@ class MainController:
                         except Exception as e:
                             print(f"Error guardando registro de concepto: {e}")
                     # Acumular totales
-                    total_devengado += calculos["total_devengado"]
-                    total_deducciones += calculos["total_deducciones"]
-                    total_neto += calculos["salario_neto"]
+                    total_devengado += calculos_dict["total_devengado"]
+                    total_deducciones += calculos_dict["total_deducciones"]
+                    total_neto += calculos_dict["salario_neto"]
 
                 except ValueError as e:
                     return {
