@@ -20,6 +20,8 @@ class CrudEmpleadoView:
         self.entrada_salario = None
         self.entrada_correo = None
         self.entrada_telefono = None
+        self.entrada_eps = None
+        self.entrada_afp = None
         self.entrada_numero_cuenta = None
         self.checkbox_auxilio = None
 
@@ -59,7 +61,7 @@ class CrudEmpleadoView:
         # ========== FORMULARIO ==========
         form_frame = ctk.CTkFrame(self.frame, fg_color="#1f2937", corner_radius=16)
         form_frame.grid(row=1, column=0, padx=20, pady=(0, 20), sticky="ew")
-        form_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        form_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
         # Fila 1: Nombre y Apellido
         ctk.CTkLabel(form_frame, text="Nombre:", font=ctk.CTkFont(size=12, weight="bold")).grid(
@@ -104,6 +106,18 @@ class CrudEmpleadoView:
         )
         self.entrada_numero_cuenta = ctk.CTkEntry(form_frame, placeholder_text="Ej: 001-2024-0001", height=36)
         self.entrada_numero_cuenta.grid(row=3, column=2, padx=12, pady=(0, 12), sticky="ew")
+        
+        ctk.CTkLabel(form_frame, text="EPS:", font=ctk.CTkFont(size=12, weight="bold")).grid(
+            row=2, column=3, padx=12, pady=(0, 4), sticky="w"
+        )
+        self.entrada_eps = ctk.CTkEntry(form_frame, placeholder_text="Ej: Sura", height=36)
+        self.entrada_eps.grid(row=3, column=3, padx=12, pady=(0, 12), sticky="ew")
+        
+        ctk.CTkLabel(form_frame, text="AFP:", font=ctk.CTkFont(size=12, weight="bold")).grid(
+            row=2, column=4, padx=12, pady=(0, 4), sticky="w"
+        )
+        self.entrada_afp = ctk.CTkEntry(form_frame, placeholder_text="Ej: Colfondos", height=36)
+        self.entrada_afp.grid(row=3, column=4, padx=12, pady=(0, 12), sticky="ew")
 
         # Checkbox de auxilio de transporte
         self.checkbox_auxilio = ctk.CTkCheckBox(
@@ -113,7 +127,7 @@ class CrudEmpleadoView:
             onvalue=True,
             offvalue=False
         )
-        self.checkbox_auxilio.grid(row=3, column=3, padx=12, pady=(0, 12), sticky="w")
+        self.checkbox_auxilio.grid(row=4, column=0, columnspan=2, padx=12, pady=(0, 12), sticky="w")
         self.checkbox_auxilio.select()  # Por defecto marcado
 
         # Bind para actualizar checkbox cuando cambia el salario
@@ -122,7 +136,7 @@ class CrudEmpleadoView:
 
         # Fila 3: Botones
         botones_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        botones_frame.grid(row=4, column=0, columnspan=4, padx=12, pady=(0, 16), sticky="ew")
+        botones_frame.grid(row=5, column=0, columnspan=5, padx=12, pady=(0, 16), sticky="ew")
         botones_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
         self.btn_crear = ctk.CTkButton(
@@ -267,6 +281,8 @@ class CrudEmpleadoView:
         correo = self.entrada_correo.get().strip()
         telefono = self.entrada_telefono.get().strip()
         numero_cuenta = self.entrada_numero_cuenta.get().strip()
+        eps = self.entrada_eps.get().strip() if self.entrada_eps else ""
+        afp = self.entrada_afp.get().strip() if self.entrada_afp else ""
         recibe_auxilio = self.checkbox_auxilio.get()
 
         if not nombre or not apellido or not cargo or not salario_str:
@@ -280,7 +296,7 @@ class CrudEmpleadoView:
             return
 
         resultado = self.controller.crear_empleado(
-            nombre, apellido, cargo, salario, correo, telefono, numero_cuenta, recibe_auxilio
+            nombre, apellido, cargo, salario, correo, telefono, numero_cuenta, eps, afp, "", recibe_auxilio
         )
         if resultado["success"]:
             self._limpiar_formulario()
@@ -311,6 +327,12 @@ class CrudEmpleadoView:
         self.entrada_telefono.insert(0, empleado.telefono)
         self.entrada_numero_cuenta.delete(0, "end")
         self.entrada_numero_cuenta.insert(0, empleado.numero_cuenta)
+        if self.entrada_eps:
+            self.entrada_eps.delete(0, "end")
+            self.entrada_eps.insert(0, empleado.eps)
+        if self.entrada_afp:
+            self.entrada_afp.delete(0, "end")
+            self.entrada_afp.insert(0, empleado.afp)
 
         # Cargar checkbox de auxilio
         if empleado.recibe_auxilio_transporte:
@@ -332,6 +354,8 @@ class CrudEmpleadoView:
         correo = self.entrada_correo.get().strip()
         telefono = self.entrada_telefono.get().strip()
         numero_cuenta = self.entrada_numero_cuenta.get().strip()
+        eps = self.entrada_eps.get().strip() if self.entrada_eps else ""
+        afp = self.entrada_afp.get().strip() if self.entrada_afp else ""
         recibe_auxilio = self.checkbox_auxilio.get()
 
         if not nombre or not apellido or not cargo or not salario_str:
@@ -345,7 +369,7 @@ class CrudEmpleadoView:
             return
 
         resultado = self.controller.actualizar_empleado(
-            self.empleado_seleccionado_id, nombre, apellido, cargo, salario, correo, telefono, numero_cuenta, recibe_auxilio
+            self.empleado_seleccionado_id, nombre, apellido, cargo, salario, correo, telefono, numero_cuenta, eps, afp, "", recibe_auxilio
         )
         if resultado["success"]:
             self._limpiar_formulario()
@@ -383,6 +407,10 @@ class CrudEmpleadoView:
         self.entrada_correo.delete(0, "end")
         self.entrada_telefono.delete(0, "end")
         self.entrada_numero_cuenta.delete(0, "end")
+        if self.entrada_eps:
+            self.entrada_eps.delete(0, "end")
+        if self.entrada_afp:
+            self.entrada_afp.delete(0, "end")
         self.checkbox_auxilio.select()  # Reset a marcado por defecto
 
     def _exportar_empleados(self):
