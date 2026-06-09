@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional
+from models.configuracion import ConfiguracionNomina
 
 
 @dataclass
@@ -21,6 +22,7 @@ class Empleado:
     auxilio_transporte_mensual: float = 161_916  # 2026
     fecha_ingreso: datetime = None
     horas_extra: float = 0.0
+    recibe_auxilio_transporte: bool = True  # True si gana <= 2 SMMLV
 
     def get_nombre_completo(self) -> str:
         """Retorna el nombre completo (Nombre Apellido)."""
@@ -43,4 +45,24 @@ class Empleado:
             "auxilio_transporte_mensual": self.auxilio_transporte_mensual,
             "fecha_ingreso": self.fecha_ingreso,
             "horas_extra": self.horas_extra,
+            "recibe_auxilio_transporte": self.recibe_auxilio_transporte,
         }
+
+    def debe_recibir_auxilio(self, config: Optional[ConfiguracionNomina] = None) -> bool:
+        """
+        Determina si el empleado debe recibir auxilio de transporte.
+        
+        Args:
+            config: ConfiguracionNomina actual (opcional, usa defaults si no se proporciona)
+        
+        Returns:
+            True si el empleado debe recibir auxilio, False en caso contrario
+        """
+        # Si config no se proporciona, usar defaults de 2026
+        if config is None:
+            config = ConfiguracionNomina.crear_default_2026()
+        
+        # El empleado recibe auxilio si:
+        # 1. Tiene el flag activado manualmente
+        # 2. Y su salario es <= 2 SMMLV
+        return self.recibe_auxilio_transporte and self.salario <= (2 * config.salario_minimo_mensual)

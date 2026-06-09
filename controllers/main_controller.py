@@ -79,6 +79,7 @@ class MainController:
         eps: str = "EPS por asignar",
         afp: str = "AFP por asignar",
         sede_laboral: str = "",
+        recibe_auxilio_transporte: bool = True,
     ) -> Dict[str, object]:
         """Crea un nuevo empleado."""
         if not nombre or not apellido or not cargo or salario <= 0:
@@ -96,6 +97,7 @@ class MainController:
             eps=eps,
             afp=afp,
             sede_laboral=sede_laboral,
+            recibe_auxilio_transporte=recibe_auxilio_transporte,
         )
         
         try:
@@ -117,6 +119,7 @@ class MainController:
         eps: str = "EPS por asignar",
         afp: str = "AFP por asignar",
         sede_laboral: str = "",
+        recibe_auxilio_transporte: bool = True,
     ) -> Dict[str, object]:
         """Actualiza un empleado existente."""
         if not self.repo_empleados.existe(empleado_id):
@@ -137,6 +140,7 @@ class MainController:
             eps=eps,
             afp=afp,
             sede_laboral=sede_laboral,
+            recibe_auxilio_transporte=recibe_auxilio_transporte,
         )
         
         try:

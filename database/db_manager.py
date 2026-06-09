@@ -88,6 +88,7 @@ class DBManager:
                 auxilio_transporte_mensual REAL DEFAULT 161916.0,
                 fecha_ingreso TIMESTAMP,
                 horas_extra REAL DEFAULT 0.0,
+                recibe_auxilio_transporte INTEGER DEFAULT 1,
                 activo INTEGER DEFAULT 1,
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -174,6 +175,7 @@ class DBManager:
         try:
             # Asegurar columnas nuevas (migración ligera) antes de insertar seed
             self._ensure_concept_columns()
+            self._ensure_empleado_columns()
             self._seed_conceptos_if_empty()
         except Exception as e:
             print(f"Error al sembrar datos iniciales de conceptos: {e}")
@@ -296,3 +298,28 @@ class DBManager:
                 print(f"No se pudo agregar columna 'naturaleza' a registro_conceptos_nomina: {e}")
 
         self._connection.commit()
+
+    def _ensure_empleado_columns(self) -> None:
+        """Asegura que la columna 'recibe_auxilio_transporte' existe en la tabla empleados.
+
+        Hace ALTER TABLE para añadir la columna si la tabla ya existe
+        (migración ligera, no destructiva).
+        """
+        cursor = self._connection.cursor()
+
+        # Helper para comprobar columnas
+        def has_column(table: str, column: str) -> bool:
+            try:
+                cursor.execute(f"PRAGMA table_info({table})")
+                cols = [r[1] for r in cursor.fetchall()]
+                return column in cols
+            except Exception:
+                return False
+
+        # Añadir 'recibe_auxilio_transporte' si falta en empleados
+        if not has_column('empleados', 'recibe_auxilio_transporte'):
+            try:
+                cursor.execute("ALTER TABLE empleados ADD COLUMN recibe_auxilio_transporte INTEGER DEFAULT 1")
+                self._connection.commit()
+            except Exception as e:
+                print(f"No se pudo agregar columna 'recibe_auxilio_transporte' a empleados: {e}")

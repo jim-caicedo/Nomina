@@ -21,6 +21,7 @@ class CrudEmpleadoView:
         self.entrada_correo = None
         self.entrada_telefono = None
         self.entrada_numero_cuenta = None
+        self.checkbox_auxilio = None
 
         # Botones
         self.btn_crear = None
@@ -103,6 +104,21 @@ class CrudEmpleadoView:
         )
         self.entrada_numero_cuenta = ctk.CTkEntry(form_frame, placeholder_text="Ej: 001-2024-0001", height=36)
         self.entrada_numero_cuenta.grid(row=3, column=2, padx=12, pady=(0, 12), sticky="ew")
+
+        # Checkbox de auxilio de transporte
+        self.checkbox_auxilio = ctk.CTkCheckBox(
+            form_frame,
+            text="Recibe Auxilio de Transporte",
+            font=ctk.CTkFont(size=11),
+            onvalue=True,
+            offvalue=False
+        )
+        self.checkbox_auxilio.grid(row=3, column=3, padx=12, pady=(0, 12), sticky="w")
+        self.checkbox_auxilio.select()  # Por defecto marcado
+
+        # Bind para actualizar checkbox cuando cambia el salario
+        self.entrada_salario.bind("<KeyRelease>", self._on_salario_change)
+        self.entrada_salario.bind("<FocusOut>", self._on_salario_change)
 
         # Fila 3: Botones
         botones_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
@@ -251,6 +267,7 @@ class CrudEmpleadoView:
         correo = self.entrada_correo.get().strip()
         telefono = self.entrada_telefono.get().strip()
         numero_cuenta = self.entrada_numero_cuenta.get().strip()
+        recibe_auxilio = self.checkbox_auxilio.get()
 
         if not nombre or not apellido or not cargo or not salario_str:
             messagebox.showerror("Error", "Los campos Nombre, Apellido, Cargo y Salario son obligatorios.")
@@ -263,7 +280,7 @@ class CrudEmpleadoView:
             return
 
         resultado = self.controller.crear_empleado(
-            nombre, apellido, cargo, salario, correo, telefono, numero_cuenta
+            nombre, apellido, cargo, salario, correo, telefono, numero_cuenta, recibe_auxilio
         )
         if resultado["success"]:
             self._limpiar_formulario()
@@ -295,6 +312,12 @@ class CrudEmpleadoView:
         self.entrada_numero_cuenta.delete(0, "end")
         self.entrada_numero_cuenta.insert(0, empleado.numero_cuenta)
 
+        # Cargar checkbox de auxilio
+        if empleado.recibe_auxilio_transporte:
+            self.checkbox_auxilio.select()
+        else:
+            self.checkbox_auxilio.deselect()
+
         self.en_edicion = True
         self.btn_crear.grid_remove()
         self.btn_guardar.grid()
@@ -309,6 +332,7 @@ class CrudEmpleadoView:
         correo = self.entrada_correo.get().strip()
         telefono = self.entrada_telefono.get().strip()
         numero_cuenta = self.entrada_numero_cuenta.get().strip()
+        recibe_auxilio = self.checkbox_auxilio.get()
 
         if not nombre or not apellido or not cargo or not salario_str:
             messagebox.showerror("Error", "Los campos Nombre, Apellido, Cargo y Salario son obligatorios.")
@@ -321,7 +345,7 @@ class CrudEmpleadoView:
             return
 
         resultado = self.controller.actualizar_empleado(
-            self.empleado_seleccionado_id, nombre, apellido, cargo, salario, correo, telefono, numero_cuenta
+            self.empleado_seleccionado_id, nombre, apellido, cargo, salario, correo, telefono, numero_cuenta, recibe_auxilio
         )
         if resultado["success"]:
             self._limpiar_formulario()
@@ -359,6 +383,7 @@ class CrudEmpleadoView:
         self.entrada_correo.delete(0, "end")
         self.entrada_telefono.delete(0, "end")
         self.entrada_numero_cuenta.delete(0, "end")
+        self.checkbox_auxilio.select()  # Reset a marcado por defecto
 
     def _exportar_empleados(self):
         from tkinter import filedialog
@@ -381,3 +406,23 @@ class CrudEmpleadoView:
             messagebox.showinfo("Éxito", f"Lista exportada:\n{ruta}")
         except Exception as e:
             messagebox.showerror("Error", f"Error al exportar: {str(e)}")
+
+    def _on_salario_change(self, event=None):
+        """Actualiza el checkbox de auxilio cuando cambia el salario."""
+        try:
+            salario_str = self.entrada_salario.get().strip()
+            if not salario_str:
+                return
+
+            salario = float(salario_str)
+            # Obtener configuración actual
+            config = self.controller.config_controller.obtener_configuracion_obj()
+            limite_smmlv = 2 * config.salario_minimo_mensual
+
+            # Marcar/desmarcar según salario
+            if salario <= limite_smmlv:
+                self.checkbox_auxilio.select()
+            else:
+                self.checkbox_auxilio.deselect()
+        except ValueError:
+            pass  # No hacer nada si el salario no es válido aún

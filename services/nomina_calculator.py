@@ -82,8 +82,13 @@ class LiquidadorNomina:
         auxilio_mensual = getattr(
             empleado, "auxilio_transporte_mensual", config.auxilio_transporte_mensual
         )
-        auxilio_diario = auxilio_mensual / DIAS_MES_PROMEDIO
-        auxilio_transporte = round(auxilio_diario * dias_laborados, 2)
+        
+        # Verificar si el empleado debe recibir auxilio de transporte
+        if not empleado.debe_recibir_auxilio(config):
+            auxilio_transporte = 0.0
+        else:
+            auxilio_diario = auxilio_mensual / DIAS_MES_PROMEDIO
+            auxilio_transporte = round(auxilio_diario * dias_laborados, 2)
 
         # 3. Horas Extras: valor_hora_extra * numero_horas_extra
         valor_hora_extra = 25.0  # Valor colombiano estándar

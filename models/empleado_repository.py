@@ -48,6 +48,11 @@ class EmpleadoRepositorySQLite(EmpleadoRepositoryBase):
 
     def _row_to_empleado(self, row) -> Empleado:
         """Convierte una fila de SQLite en objeto Empleado."""
+        # Obtener recibe_auxilio_transporte (default True si la columna no existe)
+        recibe_aux = True
+        if "recibe_auxilio_transporte" in row.keys():
+            recibe_aux = bool(row["recibe_auxilio_transporte"])
+
         return Empleado(
             id=row["id"],
             nombre=row["nombre"],
@@ -63,6 +68,7 @@ class EmpleadoRepositorySQLite(EmpleadoRepositoryBase):
             auxilio_transporte_mensual=float(row["auxilio_transporte_mensual"] or 161916.0),
             fecha_ingreso=row["fecha_ingreso"],
             horas_extra=float(row["horas_extra"] or 0.0),
+            recibe_auxilio_transporte=recibe_aux,
         )
 
     def crear(self, empleado: Empleado) -> Empleado:
@@ -71,8 +77,8 @@ class EmpleadoRepositorySQLite(EmpleadoRepositoryBase):
             cursor = self.db.get_connection().cursor()
             cursor.execute("""
                 INSERT INTO empleados 
-                (nombre, apellido, cargo, salario, correo, telefono, numero_cuenta, eps, afp, sede_laboral, auxilio_transporte_mensual)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (nombre, apellido, cargo, salario, correo, telefono, numero_cuenta, eps, afp, sede_laboral, auxilio_transporte_mensual, recibe_auxilio_transporte)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 empleado.nombre,
                 empleado.apellido,
@@ -85,9 +91,10 @@ class EmpleadoRepositorySQLite(EmpleadoRepositoryBase):
                 empleado.afp,
                 empleado.sede_laboral,
                 empleado.auxilio_transporte_mensual,
+                1 if empleado.recibe_auxilio_transporte else 0,
             ))
             self.db.get_connection().commit()
-            
+
             # Obtener el ID asignado
             empleado.id = cursor.lastrowid
             return empleado
@@ -127,9 +134,9 @@ class EmpleadoRepositorySQLite(EmpleadoRepositoryBase):
         try:
             cursor = self.db.get_connection().cursor()
             cursor.execute("""
-                UPDATE empleados 
-                SET nombre=?, apellido=?, cargo=?, salario=?, correo=?, 
-                    telefono=?, numero_cuenta=?, eps=?, afp=?, sede_laboral=?, auxilio_transporte_mensual=?
+                UPDATE empleados
+                SET nombre=?, apellido=?, cargo=?, salario=?, correo=?,
+                    telefono=?, numero_cuenta=?, eps=?, afp=?, sede_laboral=?, auxilio_transporte_mensual=?, recibe_auxilio_transporte=?
                 WHERE id=? AND activo = 1
             """, (
                 empleado.nombre,
@@ -143,6 +150,7 @@ class EmpleadoRepositorySQLite(EmpleadoRepositoryBase):
                 empleado.afp,
                 empleado.sede_laboral,
                 empleado.auxilio_transporte_mensual,
+                1 if empleado.recibe_auxilio_transporte else 0,
                 empleado.id,
             ))
             self.db.get_connection().commit()
