@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from controllers.main_controller import MainController
+from config.constants import COLORES
 
 
 class CrudEmpleadoView:
@@ -34,12 +35,25 @@ class CrudEmpleadoView:
         self.frame.grid_columnconfigure(0, weight=1)
 
         # ========== ENCABEZADO ==========
-        header = ctk.CTkLabel(
-            self.frame, 
-            text="Gestión de Empleados", 
+        header_frame = ctk.CTkFrame(self.frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+        header_frame.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            header_frame,
+            text="Gestión de Empleados",
             font=ctk.CTkFont(size=26, weight="bold")
-        )
-        header.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
+        ).grid(row=0, column=0, sticky="w")
+
+        ctk.CTkButton(
+            header_frame,
+            text="📥 Exportar lista",
+            command=self._exportar_empleados,
+            height=36,
+            width=140,
+            font=ctk.CTkFont(size=12),
+            fg_color=COLORES["primary"],
+        ).grid(row=0, column=1, sticky="e")
 
         # ========== FORMULARIO ==========
         form_frame = ctk.CTkFrame(self.frame, fg_color="#1f2937", corner_radius=16)
@@ -345,3 +359,25 @@ class CrudEmpleadoView:
         self.entrada_correo.delete(0, "end")
         self.entrada_telefono.delete(0, "end")
         self.entrada_numero_cuenta.delete(0, "end")
+
+    def _exportar_empleados(self):
+        from tkinter import filedialog
+        from utils.excel_exporter import exportar_empleados_a_excel
+
+        empleados = self.controller.listar_empleados()
+        if not empleados:
+            messagebox.showwarning("Sin datos", "No hay empleados para exportar.")
+            return
+
+        ruta = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Archivos Excel", "*.xlsx")],
+            initialfile="empleados.xlsx",
+        )
+        if not ruta:
+            return
+        try:
+            exportar_empleados_a_excel(empleados, ruta)
+            messagebox.showinfo("Éxito", f"Lista exportada:\n{ruta}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al exportar: {str(e)}")

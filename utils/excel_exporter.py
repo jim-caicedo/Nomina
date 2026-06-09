@@ -178,3 +178,91 @@ def exportar_nomina_a_excel(
     # Guardar archivo
     wb.save(ruta_archivo)
     return ruta_archivo
+
+
+def exportar_empleados_a_excel(
+    empleados: list,
+    ruta_archivo: str = None,
+) -> str:
+    """
+    Exporta la lista de empleados a un archivo Excel.
+
+    Args:
+        empleados: Lista de diccionarios con datos de empleados (to_dict())
+        ruta_archivo: Ruta donde guardar el archivo (opcional)
+
+    Returns:
+        Ruta del archivo Excel generado
+    """
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    except ImportError:
+        raise ImportError("openpyxl no está instalado.")
+
+    from datetime import date
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Empleados"
+
+    # Título
+    ws.merge_cells("A1:J1")
+    ws["A1"] = "LISTADO DE EMPLEADOS"
+    ws["A1"].font = Font(name="Arial", size=14, bold=True)
+    ws["A1"].alignment = Alignment(horizontal="center")
+
+    ws.merge_cells("A2:J2")
+    from datetime import date
+    ws["A2"] = f"Fecha de exportación: {date.today().strftime('%d/%m/%Y')}"
+    ws["A2"].font = Font(name="Arial", size=11)
+    ws["A2"].alignment = Alignment(horizontal="center")
+
+    # Encabezados
+    headers = [
+        "ID", "Nombre", "Apellido", "Cargo", "Salario",
+        "EPS", "AFP", "Sede", "Correo", "Teléfono"
+    ]
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+
+    for col_idx, header in enumerate(headers, start=1):
+        cell = ws.cell(row=4, column=col_idx, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center")
+
+    # Datos
+    thin = Border(
+        left=Side(style="thin"), right=Side(style="thin"),
+        top=Side(style="thin"), bottom=Side(style="thin")
+    )
+    for row_idx, emp in enumerate(empleados, start=5):
+        fila = [
+            emp.get("id", ""),
+            emp.get("nombre", ""),
+            emp.get("apellido", ""),
+            emp.get("cargo", ""),
+            emp.get("salario", 0),
+            emp.get("eps", ""),
+            emp.get("afp", ""),
+            emp.get("sede_laboral", ""),
+            emp.get("correo", ""),
+            emp.get("telefono", ""),
+        ]
+        for col_idx, valor in enumerate(fila, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=valor)
+            cell.border = thin
+            cell.font = Font(name="Arial", size=10)
+            cell.alignment = Alignment(horizontal="left")
+
+    # Ancho de columnas
+    anchos = [6, 16, 16, 18, 14, 18, 18, 16, 24, 14]
+    for col_idx, ancho in enumerate(anchos, start=1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = ancho
+
+    if ruta_archivo is None:
+        ruta_archivo = f"empleados_{date.today().strftime('%Y%m%d')}.xlsx"
+
+    wb.save(ruta_archivo)
+    return ruta_archivo

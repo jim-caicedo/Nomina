@@ -5,6 +5,7 @@ from views.crud_empleado_view import CrudEmpleadoView
 from views.liquidar_nomina_view import LiquidarNominaView
 from views.configuracion_view import ConfiguracionView
 from views.gestion_conceptos_view import GestionConceptosView
+from views.historial_nomina_view import HistorialNominaView
 
 
 class MainView:
@@ -43,31 +44,7 @@ class MainView:
         self.sidebar.grid(row=0, column=0, sticky="nsw")
         # Dejar que el contenido pueda expandirse y en versiones con scroll
         self.sidebar.grid_rowconfigure(0, weight=1)
-        # Algunas versiones de CTkScrollableFrame no aceptan argumentos en grid_propagate.
-        # Llamamos de forma segura comprobando la firma y probando alternativas.
-        try:
-            import inspect
-
-            if hasattr(self.sidebar, "grid_propagate"):
-                sig = inspect.signature(self.sidebar.grid_propagate)
-                # Si la firma solo incluye 'self' (1 parámetro), llamamos sin args
-                if len(sig.parameters) <= 1:
-                    try:
-                        self.sidebar.grid_propagate()
-                    except Exception:
-                        # Si falla, intentar ignorar y continuar
-                        pass
-                else:
-                    try:
-                        self.sidebar.grid_propagate(False)
-                    except Exception:
-                        try:
-                            self.sidebar.grid_propagate()
-                        except Exception:
-                            pass
-        except Exception:
-            # En caso de cualquier error de introspección, ignoramos y seguimos
-            pass
+        ##self.sidebar.grid_propagate(False)  # Mantiene ancho fijo
 
         title = ctk.CTkLabel(
             self.sidebar,
@@ -116,13 +93,21 @@ class MainView:
         )
         btn_liquidar_nomina.grid(row=5, column=0, padx=20, pady=8, sticky="ew")
 
+        btn_historial = ctk.CTkButton(
+            self.sidebar,
+            text="📋 Historial de Nóminas",
+            command=lambda: self._show_frame("historial_nomina"),
+            anchor="w"
+        )
+        btn_historial.grid(row=6, column=0, padx=20, pady=8, sticky="ew")
+
         btn_configuracion = ctk.CTkButton(
             self.sidebar,
             text="⚙️ Configuración Legal",
             command=lambda: self._show_frame("configuracion"),
             anchor="w"
         )
-        btn_configuracion.grid(row=6, column=0, padx=20, pady=8, sticky="ew")
+        btn_configuracion.grid(row=7, column=0, padx=20, pady=8, sticky="ew")
 
         btn_conceptos = ctk.CTkButton(
             self.sidebar,
@@ -130,16 +115,7 @@ class MainView:
             command=lambda: self._show_frame("conceptos"),
             anchor="w"
         )
-        btn_conceptos.grid(row=7, column=0, padx=20, pady=8, sticky="ew")
-
-        btn_liquidar = ctk.CTkButton(
-            self.sidebar,
-            text="Liquidar (Old)",
-            command=lambda: self._show_frame("liquidar"),
-            anchor="w"
-        )
-        # Mover a la siguiente fila para evitar solapamiento con el botón de conceptos
-        btn_liquidar.grid(row=8, column=0, padx=20, pady=8, sticky="ew")
+        btn_conceptos.grid(row=8, column=0, padx=20, pady=8, sticky="ew")
 
         # Content frame que ocupa TODO el espacio restante
         self.content_frame = ctk.CTkFrame(self.root)
@@ -155,6 +131,7 @@ class MainView:
             "empleados": self._create_empleados_frame,
             "crud": self._create_crud_frame,
             "liquidar_nomina": self._create_liquidar_nomina_frame,
+            "historial_nomina": self._create_historial_nomina_frame,
             "configuracion": self._create_configuracion_frame,
             "conceptos": self._create_gestion_conceptos_frame,
             "liquidar": self._create_liquidar_frame,
@@ -337,6 +314,10 @@ class MainView:
         """Crea el frame de liquidación de nómina quincenal."""
         liquidar_view = LiquidarNominaView(self.content_frame, self.controller)
         return liquidar_view.crear_frame()
+
+    def _create_historial_nomina_frame(self):
+        historial_view = HistorialNominaView(self.content_frame, self.controller)
+        return historial_view.crear_frame()
 
     # ============================================================
     # CONFIGURACIÓN

@@ -45,7 +45,11 @@ class GestionConceptosView:
 
         empleados = self.controller.obtener_empleados()
         empleados_opts = [f"{e['id']} - {e['nombre']} {e['apellido']}" for e in empleados]
-        self.empleado_select = ctk.CTkOptionMenu(asign_frame, values=empleados_opts)
+        self.empleado_select = ctk.CTkOptionMenu(
+            asign_frame,
+            values=empleados_opts,
+            command=lambda _: self._actualizar_asignaciones()
+        )
         if empleados_opts:
             self.empleado_select.set(empleados_opts[0])
         self.empleado_select.grid(row=0, column=0, padx=12, pady=(0, 12), sticky="w")
@@ -74,7 +78,8 @@ class GestionConceptosView:
             f = ctk.CTkFrame(self.scroll_conceptos, fg_color="#1f2937", corner_radius=8)
             f.grid(row=i, column=0, padx=8, pady=8, sticky="ew")
             f.grid_columnconfigure(0, weight=1)
-            ctk.CTkLabel(f, text=f"{c['id']} - {c['nombre']} ({c.get('naturaleza','devengado')})").grid(row=0, column=0, sticky="w", padx=12, pady=10)
+            naturaleza = c.get('naturaleza') or 'devengado'
+            ctk.CTkLabel(f, text=f"{c['id']} - {c['nombre']} ({naturaleza})").grid(row=0, column=0, sticky="w", padx=12, pady=10)
             btns = ctk.CTkFrame(f, fg_color="transparent")
             btns.grid(row=0, column=1, sticky="e", padx=12)
             ctk.CTkButton(btns, text="✎ Editar", width=80, command=lambda cid=c['id']: self._editar_concepto(cid)).grid(row=0, column=0, padx=6)
@@ -83,6 +88,28 @@ class GestionConceptosView:
     def _actualizar_asignaciones(self):
         for w in self.scroll_asignaciones.winfo_children():
             w.destroy()
+        # Refresh empleados list in selector in case new empleados were created elsewhere
+        empleados = self.controller.obtener_empleados()
+        empleados_opts = [f"{e['id']} - {e['nombre']} {e['apellido']}" for e in empleados]
+        if self.empleado_select:
+            try:
+                valor_actual = self.empleado_select.get()
+            except Exception:
+                valor_actual = None
+            if empleados_opts:
+                self.empleado_select.configure(values=empleados_opts)
+                # Mantener la selección actual si sigue siendo válida
+                if valor_actual in empleados_opts:
+                    self.empleado_select.set(valor_actual)
+                else:
+                    self.empleado_select.set(empleados_opts[0])
+            else:
+                self.empleado_select.configure(values=[])
+                try:
+                    self.empleado_select.set("")
+                except Exception:
+                    pass
+
         sel = self.empleado_select.get() if self.empleado_select else None
         if not sel:
             ctk.CTkLabel(self.scroll_asignaciones, text="Seleccione un empleado arriba", text_color="#9ca3af").grid(pady=12)
@@ -208,6 +235,6 @@ class GestionConceptosView:
                 self._actualizar_asignaciones()
                 messagebox.showinfo("Éxito", "Asignación removida")
             else:
-                messagebox.showerror("Error", "No se pudo remover asignación")
+                messagebox.showerror("Error", "No se pudo remover la asignación")
         except Exception as e:
             messagebox.showerror("Error", str(e))
