@@ -4,7 +4,7 @@ Maneja la lógica de negocio para configuración de parámetros legales.
 """
 
 from typing import Dict, List
-from models.configuracion import ConfiguracionNomina
+from models.domain.configuracion import ConfiguracionNomina
 from models.configuracion_repository import ConfiguracionRepositorySQLite
 
 

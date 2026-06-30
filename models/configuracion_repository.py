@@ -7,7 +7,7 @@ import sqlite3
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from database.db_manager import DBManager
-from models.configuracion import ConfiguracionNomina
+from models.domain.configuracion import ConfiguracionNomina
 
 
 class ConfiguracionRepositoryBase(ABC):

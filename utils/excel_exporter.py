@@ -5,7 +5,7 @@ Genera archivos Excel con formato profesional para liquidaciones de nómina.
 
 from datetime import date
 from typing import List
-from models.registro_nomina import RegistroNomina
+from models.domain.nomina import RegistroNomina
 
 
 def exportar_nomina_a_excel(
