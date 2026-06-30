@@ -1,12 +1,14 @@
 import customtkinter as ctk
 from tkinter import messagebox
-from controllers.main_controller import MainController
+from controllers.concepto_controller import ConceptoController
+from controllers.empleado_controller import EmpleadoController
 
 
 class GestionConceptosView:
-    def __init__(self, content_frame: ctk.CTkFrame, controller: MainController):
+    def __init__(self, content_frame: ctk.CTkFrame, controller: ConceptoController):
         self.content_frame = content_frame
-        self.controller = controller
+        self.concepto_controller = controller
+        self.empleado_controller = EmpleadoController()
         self.frame = None
         self.scroll_conceptos = None
         self.scroll_asignaciones = None
@@ -43,7 +45,7 @@ class GestionConceptosView:
 
         ctk.CTkLabel(asign_frame, text="Asignaciones a Empleados", font=ctk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, sticky="w", padx=12, pady=12)
 
-        empleados = self.controller.obtener_empleados()
+        empleados = self.empleado_controller.obtener_empleados()
         empleados_opts = [f"{e['id']} - {e['nombre']} {e['apellido']}" for e in empleados]
         self.empleado_select = ctk.CTkOptionMenu(
             asign_frame,
@@ -70,7 +72,7 @@ class GestionConceptosView:
     def _actualizar_catalogo(self):
         for w in self.scroll_conceptos.winfo_children():
             w.destroy()
-        conceptos = self.controller.obtener_conceptos_disponibles()
+        conceptos = self.concepto_controller.obtener_conceptos_disponibles()
         if not conceptos:
             ctk.CTkLabel(self.scroll_conceptos, text="No hay conceptos", text_color="#9ca3af").grid(pady=12)
             return
@@ -89,7 +91,7 @@ class GestionConceptosView:
         for w in self.scroll_asignaciones.winfo_children():
             w.destroy()
         # Refresh empleados list in selector in case new empleados were created elsewhere
-        empleados = self.controller.obtener_empleados()
+        empleados = self.empleado_controller.obtener_empleados()
         empleados_opts = [f"{e['id']} - {e['nombre']} {e['apellido']}" for e in empleados]
         if self.empleado_select:
             try:
@@ -115,7 +117,7 @@ class GestionConceptosView:
             ctk.CTkLabel(self.scroll_asignaciones, text="Seleccione un empleado arriba", text_color="#9ca3af").grid(pady=12)
             return
         empleado_id = int(sel.split(" - ")[0])
-        asigns = self.controller.obtener_conceptos_de_empleado(empleado_id)
+        asigns = self.concepto_controller.obtener_conceptos_de_empleado(empleado_id)
         if not asigns:
             ctk.CTkLabel(self.scroll_asignaciones, text="No hay asignaciones", text_color="#9ca3af").grid(pady=12)
             return
@@ -159,7 +161,7 @@ class GestionConceptosView:
             except Exception:
                 messagebox.showerror("Error", "Valor inválido")
                 return
-            resp = self.controller.crear_concepto(nombre, tipo, naturaleza, valor)
+            resp = self.concepto_controller.crear_concepto(nombre, tipo, naturaleza, valor)
             if resp.get('success'):
                 modal.destroy()
                 self._actualizar_catalogo()
@@ -180,7 +182,7 @@ class GestionConceptosView:
         modal.title("Asignar Concepto")
         modal.geometry("480x260")
 
-        conceptos = self.controller.obtener_conceptos_disponibles()
+        conceptos = self.concepto_controller.obtener_conceptos_disponibles()
         opciones = [f"{c['id']} - {c['nombre']}" for c in conceptos]
         ctk.CTkLabel(modal, text="Concepto:").pack(padx=12, pady=(12,4), anchor="w")
         combo = ctk.CTkOptionMenu(modal, values=opciones)
@@ -203,7 +205,7 @@ class GestionConceptosView:
                 except Exception:
                     messagebox.showerror("Error", "Valor inválido")
                     return
-            resp = self.controller.asignar_concepto_a_empleado(empleado_id, concepto_id=concepto_id, valor_personalizado=valor_personalizado)
+            resp = self.concepto_controller.asignar_concepto_a_empleado(empleado_id, concepto_id=concepto_id, valor_personalizado=valor_personalizado)
             if resp.get('success'):
                 modal.destroy()
                 self._actualizar_asignaciones()
@@ -219,7 +221,7 @@ class GestionConceptosView:
     def _desactivar_concepto(self, concepto_id: int):
         # Soft-delete: reutilizar repo_conceptos.eliminar
         try:
-            ok = self.controller.repo_conceptos.eliminar(concepto_id)
+            ok = self.concepto_controller.repo_conceptos.eliminar(concepto_id)
             if ok:
                 self._actualizar_catalogo()
                 messagebox.showinfo("Éxito", "Concepto desactivado")
@@ -230,7 +232,7 @@ class GestionConceptosView:
 
     def _quitar_asignacion(self, asign_id: int):
         try:
-            ok = self.controller.repo_conceptos_emp.desasignar(asign_id)
+            ok = self.concepto_controller.repo_conceptos_emp.desasignar(asign_id)
             if ok:
                 self._actualizar_asignaciones()
                 messagebox.showinfo("Éxito", "Asignación removida")

@@ -6,7 +6,7 @@ Permite calcular y visualizar la nómina de todos los empleados en un período.
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
 from datetime import datetime, date
-from controllers.main_controller import MainController
+from controllers.nomina_controller import NominaController
 from config.constants import COLORES, FORMATO_FECHA
 from utils.excel_exporter import exportar_nomina_a_excel
 
@@ -14,7 +14,7 @@ from utils.excel_exporter import exportar_nomina_a_excel
 class LiquidarNominaView:
     """Vista para la liquidación de nómina."""
 
-    def __init__(self, content_frame: ctk.CTkFrame, controller: MainController):
+    def __init__(self, content_frame: ctk.CTkFrame, controller: NominaController):
         self.content_frame = content_frame
         self.controller = controller
         self.frame = None

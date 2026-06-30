@@ -6,13 +6,13 @@ Muestra períodos agregados y detalle por empleado sin recalcular.
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
 from datetime import datetime
-from controllers.main_controller import MainController
+from controllers.historial_controller import HistorialController
 from config.constants import COLORES
 from utils.excel_exporter import exportar_nomina_a_excel
 
 
 class HistorialNominaView:
-    def __init__(self, content_frame, controller: MainController):
+    def __init__(self, content_frame, controller: HistorialController):
         self.content_frame = content_frame
         self.controller = controller
         self.frame = None

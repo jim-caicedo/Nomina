@@ -1,11 +1,11 @@
 import customtkinter as ctk
 from tkinter import messagebox
-from controllers.main_controller import MainController
+from controllers.empleado_controller import EmpleadoController
 from config.constants import COLORES
 
 
 class CrudEmpleadoView:
-    def __init__(self, content_frame: ctk.CTkFrame, controller: MainController):
+    def __init__(self, content_frame: ctk.CTkFrame, controller: EmpleadoController):
         self.content_frame = content_frame
         self.controller = controller
         self.frame = None

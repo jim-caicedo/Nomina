@@ -1,6 +1,12 @@
 import customtkinter as ctk
 from tkinter import StringVar
 from controllers.main_controller import MainController
+from controllers.empleado_controller import EmpleadoController
+from controllers.nomina_controller import NominaController
+from controllers.concepto_controller import ConceptoController
+from controllers.dashboard_controller import DashboardController
+from controllers.historial_controller import HistorialController
+from controllers.configuracion_controller import ConfiguracionController
 from views.crud_empleado_view import CrudEmpleadoView
 from views.liquidar_nomina_view import LiquidarNominaView
 from views.configuracion_view import ConfiguracionView
@@ -25,6 +31,14 @@ class MainView:
         self._frame_factories = {}  # Diccionario de fábricas para lazy loading
         self.empleado_seleccionado = StringVar()
         self.horas_extra_var = StringVar(value="0")
+
+        # Inicializar controladores especializados
+        self.empleado_controller = EmpleadoController()
+        self.nomina_controller = NominaController()
+        self.concepto_controller = ConceptoController()
+        self.dashboard_controller = DashboardController()
+        self.historial_controller = HistorialController()
+        self.config_controller = ConfiguracionController()
 
         self._build_ui()
 
@@ -164,7 +178,7 @@ class MainView:
         cards_frame.grid(row=1, column=0, sticky="new", padx=20, pady=(0, 20))
         cards_frame.grid_columnconfigure((0, 1, 2), weight=1, uniform="cards")
 
-        resumen = self.controller.generar_resumen_dashboard()
+        resumen = self.dashboard_controller.generar_resumen_dashboard()
 
         card1 = self._create_stat_card(
             cards_frame,
@@ -269,7 +283,7 @@ class MainView:
         scroll.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
         scroll.grid_columnconfigure(0, weight=1)
 
-        empleados = self.controller.obtener_empleados()
+        empleados = self.empleado_controller.obtener_empleados()
         for index, empleado in enumerate(empleados):
             row_frame = ctk.CTkFrame(
                 scroll,
@@ -304,7 +318,7 @@ class MainView:
     # ============================================================
     def _create_crud_frame(self):
         """Crea el frame del CRUD de empleados."""
-        crud_view = CrudEmpleadoView(self.content_frame, self.controller)
+        crud_view = CrudEmpleadoView(self.content_frame, self.empleado_controller)
         return crud_view.crear_frame()
 
     # ============================================================
@@ -312,11 +326,11 @@ class MainView:
     # ============================================================
     def _create_liquidar_nomina_frame(self):
         """Crea el frame de liquidación de nómina quincenal."""
-        liquidar_view = LiquidarNominaView(self.content_frame, self.controller)
+        liquidar_view = LiquidarNominaView(self.content_frame, self.nomina_controller)
         return liquidar_view.crear_frame()
 
     def _create_historial_nomina_frame(self):
-        historial_view = HistorialNominaView(self.content_frame, self.controller)
+        historial_view = HistorialNominaView(self.content_frame, self.historial_controller)
         return historial_view.crear_frame()
 
     # ============================================================
@@ -326,12 +340,12 @@ class MainView:
         """Crea el frame de configuración legal de nómina."""
         configuracion_view = ConfiguracionView(
             self.content_frame,
-            self.controller.config_controller
+            self.config_controller
         )
         return configuracion_view.crear_frame()
 
     def _create_gestion_conceptos_frame(self):
-        gestion_view = GestionConceptosView(self.content_frame, self.controller)
+        gestion_view = GestionConceptosView(self.content_frame, self.concepto_controller)
         return gestion_view.crear_frame()
 
     # ============================================================
@@ -357,7 +371,7 @@ class MainView:
 
         empleado_options = [
             f"{e['id']} - {e['nombre']}"
-            for e in self.controller.obtener_empleados()
+            for e in self.empleado_controller.obtener_empleados()
         ]
         if empleado_options:
             self.empleado_seleccionado.set(empleado_options[0])
