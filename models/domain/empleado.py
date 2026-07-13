@@ -20,10 +20,10 @@ class Empleado:
     correo: str = ""
     telefono: str = ""
     numero_cuenta: str = ""
-    eps: str = "EPS por asignar"
-    afp: str = "AFP por asignar"
+    eps: str = ""
+    afp: str = ""
     sede_laboral: str = ""
-    auxilio_transporte_mensual: float = 161_916
+    auxilio_transporte_mensual: float = 0.0
     fecha_ingreso: Optional[datetime] = None
     horas_extra: float = 0.0
     recibe_auxilio_transporte: bool = True
@@ -42,11 +42,12 @@ class Empleado:
     def get_nombre_completo(self) -> str:
         return f"{self.nombre} {self.apellido}".strip()
     
-    def debe_recibir_auxilio(self, config: Optional[ConfiguracionNomina] = None) -> bool:
-        """Determina si debe recibir auxilio de transporte"""
-        if config is None:
-            config = ConfiguracionNomina.crear_default_2026()
-        return self.recibe_auxilio_transporte and self.salario <= (2 * config.salario_minimo_mensual)
+    def debe_recibir_auxilio(self, config: ConfiguracionNomina) -> bool:
+        """Determina si debe recibir auxilio de transporte según la config legal vigente."""
+        return (
+            self.recibe_auxilio_transporte
+            and self.salario <= (2 * config.salario_minimo_mensual)
+        )
     
     def to_dict(self) -> Dict[str, object]:
         return {

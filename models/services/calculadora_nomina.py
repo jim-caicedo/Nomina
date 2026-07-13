@@ -15,6 +15,13 @@ class CalculadoraNomina:
     
     def __init__(self, config: ConfiguracionNomina):
         self.config = config
+    @staticmethod
+    def calcular_dias_laborados(fecha_inicio: date, fecha_cierre: date) -> int:
+        """
+        Calcula los días laborados de un período como días calendario inclusivos.
+        Ej: del 1 al 15 -> 15 días. Del 16 al 30 -> 15 días.
+        """
+        return (fecha_cierre - fecha_inicio).days + 1
     
     @staticmethod
     def validar_periodo(fecha_inicio: date, fecha_cierre: date) -> bool:

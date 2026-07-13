@@ -7,7 +7,7 @@ import customtkinter as ctk
 from tkinter import messagebox, filedialog
 from datetime import datetime
 from controllers.historial_controller import HistorialController
-from config.constants import COLORES
+from utils.ui_theme import COLORES
 from utils.excel_exporter import exportar_nomina_a_excel
 
 

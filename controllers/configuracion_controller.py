@@ -4,6 +4,7 @@ Maneja la lógica de negocio para configuración de parámetros legales.
 """
 
 from typing import Dict, List
+from database.seed_data import crear_configuracion_inicial
 from models.domain.configuracion import ConfiguracionNomina
 from models.configuracion_repository import ConfiguracionRepositorySQLite
 
@@ -149,7 +150,7 @@ class ConfiguracionController:
             Diccionario con resultado de la operación
         """
         try:
-            config_default = ConfiguracionNomina.crear_default_2026()
+            config_default = crear_configuracion_inicial()
             config_guardada = self.repo.guardar_configuracion(config_default)
 
             return {

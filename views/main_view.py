@@ -158,7 +158,7 @@ class MainView:
         self._show_frame("dashboard")
 
     # ============================================================
-    # DASHBOARD - Layout Responsive
+    # DASHBOARD - Layout Responsive con Calendario de Pagos
     # ============================================================
     def _create_dashboard_frame(self):
         frame = ctk.CTkFrame(self.content_frame, corner_radius=20)
@@ -201,17 +201,284 @@ class MainView:
         )
         card3.grid(row=0, column=2, padx=10, pady=20, sticky="nsew")
 
-        # Descripción
-        descripcion = ctk.CTkLabel(
-            frame,
-            text="Sistema de nómina con flujo básico para visualizar empleados y calcular liquidaciones. Usa datos de prueba sin conexión a base de datos.",
-            wraplength=760,
-            justify="left",
-            font=ctk.CTkFont(size=14),
+        # ====== CALENDARIO DE PAGOS ======
+        calendar_container = ctk.CTkFrame(frame, fg_color="#1f2937", corner_radius=16)
+        calendar_container.grid(row=2, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        calendar_container.grid_rowconfigure(2, weight=1)
+        calendar_container.grid_columnconfigure(0, weight=1)
+
+        # Título del calendario
+        calendar_title = ctk.CTkLabel(
+            calendar_container,
+            text="📅 Calendario de Pagos",
+            font=ctk.CTkFont(size=18, weight="bold")
         )
-        descripcion.grid(row=2, column=0, sticky="nw", padx=20, pady=(0, 20))
+        calendar_title.grid(row=0, column=0, padx=20, pady=(16, 8), sticky="w")
+
+        # Leyenda
+        legend_frame = ctk.CTkFrame(calendar_container, fg_color="transparent")
+        legend_frame.grid(row=1, column=0, padx=20, pady=(0, 8), sticky="w")
+
+        pay_indicator = ctk.CTkFrame(legend_frame, width=14, height=14, fg_color="#10b981", corner_radius=7)
+        pay_indicator.grid(row=0, column=0)
+        pay_label = ctk.CTkLabel(legend_frame, text="Día de pago (15 y 30)", font=ctk.CTkFont(size=11))
+        pay_label.grid(row=0, column=1, padx=(6, 16))
+
+        today_indicator = ctk.CTkFrame(legend_frame, width=14, height=14, fg_color="#f59e0b", corner_radius=7)
+        today_indicator.grid(row=0, column=2)
+        today_label = ctk.CTkLabel(legend_frame, text="Hoy", font=ctk.CTkFont(size=11))
+        today_label.grid(row=0, column=3, padx=(6, 0))
+
+        # ====== CREAR payday_info_label ANTES del calendario ======
+        self.payday_info_label = ctk.CTkLabel(
+            calendar_container,
+            text="",
+            font=ctk.CTkFont(size=13),
+            text_color="#94a3b8"
+        )
+        self.payday_info_label.grid(row=3, column=0, padx=20, pady=(0, 16), sticky="w")
+
+        # ====== AHORA sí crear el calendario ======
+        self.calendar_widget = self._create_calendar_widget(calendar_container)
+        self.calendar_widget.grid(row=2, column=0, padx=20, pady=(0, 12), sticky="nsew")
 
         return frame
+
+    def _create_calendar_widget(self, parent):
+        """Crea un widget de calendario que marca los días 15 y 30 como días de pago."""
+        import calendar
+        from datetime import datetime
+
+        container = ctk.CTkFrame(parent, fg_color="#0f172a", corner_radius=12)
+        container.grid_rowconfigure(2, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        now = datetime.now()
+        self._cal_year = now.year
+        self._cal_month = now.month
+
+        # Header con navegación
+        header_frame = ctk.CTkFrame(container, fg_color="transparent")
+        header_frame.grid(row=0, column=0, padx=12, pady=(12, 8), sticky="ew")
+        header_frame.grid_columnconfigure(1, weight=1)
+
+        month_names = [
+            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ]
+
+        prev_btn = ctk.CTkButton(
+            header_frame,
+            text="◀",
+            width=30,
+            command=self._prev_month
+        )
+        prev_btn.grid(row=0, column=0, padx=(0, 8))
+
+        self._month_year_label = ctk.CTkLabel(
+            header_frame,
+            text=f"{month_names[self._cal_month - 1]} {self._cal_year}",
+            font=ctk.CTkFont(size=15, weight="bold")
+        )
+        self._month_year_label.grid(row=0, column=1)
+
+        next_btn = ctk.CTkButton(
+            header_frame,
+            text="▶",
+            width=30,
+            command=self._next_month
+        )
+        next_btn.grid(row=0, column=2, padx=(8, 0))
+
+        # Días de la semana
+        weekdays_frame = ctk.CTkFrame(container, fg_color="transparent")
+        weekdays_frame.grid(row=1, column=0, padx=12, pady=(0, 4), sticky="ew")
+        for i, day in enumerate(["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]):
+            weekdays_frame.grid_columnconfigure(i, weight=1)
+            ctk.CTkLabel(
+                weekdays_frame,
+                text=day,
+                font=ctk.CTkFont(size=11, weight="bold"),
+                text_color="#64748b",
+                width=36
+            ).grid(row=0, column=i, padx=2)
+
+        # Grid de días
+        self._days_grid = ctk.CTkFrame(container, fg_color="transparent")
+        self._days_grid.grid(row=2, column=0, padx=12, pady=(0, 12), sticky="nsew")
+
+        self._render_calendar_days()
+
+        return container
+
+    def _prev_month(self):
+        """Navega al mes anterior."""
+        self._cal_month -= 1
+        if self._cal_month < 1:
+            self._cal_month = 12
+            self._cal_year -= 1
+        self._render_calendar_days()
+
+    def _next_month(self):
+        """Navega al mes siguiente."""
+        self._cal_month += 1
+        if self._cal_month > 12:
+            self._cal_month = 1
+            self._cal_year += 1
+        self._render_calendar_days()
+
+    def _render_calendar_days(self):
+        """Renderiza los días del calendario resaltando los días de pago."""
+        import calendar
+        from datetime import datetime
+
+        # Limpiar grid anterior
+        for widget in self._days_grid.winfo_children():
+            widget.destroy()
+
+        year, month = self._cal_year, self._cal_month
+        today = datetime.now()
+
+        # Calcular días del mes
+        cal = calendar.Calendar(firstweekday=calendar.MONDAY)
+        month_weeks = cal.monthdayscalendar(year, month)
+        days_in_month = calendar.monthrange(year, month)[1]
+
+        # Días de pago: 15 y el día 30 (o último día si el mes tiene menos de 30)
+        paydays = {15}
+        if days_in_month >= 30:
+            paydays.add(30)
+        else:
+            paydays.add(days_in_month)
+
+        # Renderizar semanas
+        for week_idx, week in enumerate(month_weeks):
+            for day_idx, day in enumerate(week):
+                self._days_grid.grid_columnconfigure(day_idx, weight=1)
+
+                if day == 0:
+                    # Celda vacía
+                    empty = ctk.CTkFrame(self._days_grid, fg_color="transparent", width=36, height=36)
+                    empty.grid(row=week_idx, column=day_idx, padx=2, pady=2)
+                    continue
+
+                is_payday = day in paydays
+                is_today = (year == today.year and month == today.month and day == today.day)
+
+                # Determinar colores
+                if is_payday and is_today:
+                    fg_color = "#10b981"      # Verde (pago)
+                    border_color = "#f59e0b"  # Borde naranja (hoy)
+                    text_color = "#ffffff"
+                elif is_payday:
+                    fg_color = "#10b981"      # Verde
+                    border_color = "#059669"
+                    text_color = "#ffffff"
+                elif is_today:
+                    fg_color = "#f59e0b"      # Naranja
+                    border_color = "#d97706"
+                    text_color = "#ffffff"
+                else:
+                    fg_color = "#1e293b"
+                    border_color = "#334155"
+                    text_color = "#e2e8f0"
+
+                day_cell = ctk.CTkFrame(
+                    self._days_grid,
+                    fg_color=fg_color,
+                    border_color=border_color,
+                    border_width=2 if (is_payday or is_today) else 1,
+                    corner_radius=10,
+                    width=36,
+                    height=36
+                )
+                day_cell.grid(row=week_idx, column=day_idx, padx=2, pady=2, sticky="nsew")
+                day_cell.grid_propagate(False)
+
+                # Label del día
+                day_label = ctk.CTkLabel(
+                    day_cell,
+                    text=str(day),
+                    font=ctk.CTkFont(size=13, weight="bold" if (is_payday or is_today) else "normal"),
+                    text_color=text_color
+                )
+                day_label.place(relx=0.5, rely=0.5, anchor="center")
+
+                # Tooltip para días de pago
+                if is_payday:
+                    day_cell.bind("<Enter>", lambda e, d=day: self._show_payday_tooltip(e, d))
+                    day_cell.bind("<Leave>", lambda e: self._hide_payday_tooltip(e))
+
+        # Actualizar label del mes
+        month_names = [
+            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ]
+        self._month_year_label.configure(text=f"{month_names[month - 1]} {year}")
+
+        # Actualizar info del próximo pago
+        self._update_next_payday_info(year, month, paydays, today)
+
+    def _show_payday_tooltip(self, event, day):
+        """Muestra un tooltip indicando que es día de pago."""
+        widget = event.widget.master if hasattr(event.widget, 'master') else event.widget
+        if not hasattr(self, '_tooltip'):
+            self._tooltip = ctk.CTkToplevel(self.root)
+            self._tooltip.overrideredirect(True)
+            self._tooltip.attributes('-topmost', True)
+            self._tooltip.configure(fg_color="#0f172a")
+            label = ctk.CTkLabel(
+                self._tooltip,
+                text=f"💰 Día de pago de nómina",
+                font=ctk.CTkFont(size=11),
+                text_color="#10b981",
+                fg_color="#0f172a",
+                corner_radius=6
+            )
+            label.pack(padx=10, pady=6)
+        x = widget.winfo_rootx() + widget.winfo_width() // 2 - 60
+        y = widget.winfo_rooty() - 35
+        self._tooltip.geometry(f"+{x}+{y}")
+        self._tooltip.deiconify()
+
+    def _hide_payday_tooltip(self, event):
+        """Oculta el tooltip."""
+        if hasattr(self, '_tooltip'):
+            self._tooltip.withdraw()
+
+    def _update_next_payday_info(self, year, month, paydays, today):
+        """Actualiza el label con información del próximo día de pago."""
+        from datetime import datetime
+        import calendar
+
+        # Encontrar próximo día de pago
+        next_pay = None
+        current_month_paydays = sorted(paydays)
+
+        for pd in current_month_paydays:
+            pd_date = datetime(year, month, pd)
+            if pd_date.date() >= today.date() and not next_pay:
+                next_pay = pd_date
+
+        # Si no hay más pagos este mes, ir al siguiente
+        if not next_pay:
+            next_m = month + 1
+            next_y = year
+            if next_m > 12:
+                next_m = 1
+                next_y += 1
+            next_days = calendar.monthrange(next_y, next_m)[1]
+            next_paydays = {15, 30 if next_days >= 30 else next_days}
+            next_pay = datetime(next_y, next_m, min(next_paydays))
+
+        diff_days = (next_pay.date() - today.date()).days
+        diff_text = f"en {diff_days} días" if diff_days > 0 else "hoy" if diff_days == 0 else "pasado"
+
+        self.payday_info_label.configure(
+            text=f"💰 Próximo pago: {next_pay.day} de "
+                 f"{['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][next_pay.month-1]} "
+                 f"de {next_pay.year} ({diff_text})"
+        )
 
     def _create_stat_card(self, parent, title: str, value: str):
         card = ctk.CTkFrame(parent, corner_radius=16)
@@ -318,7 +585,11 @@ class MainView:
     # ============================================================
     def _create_crud_frame(self):
         """Crea el frame del CRUD de empleados."""
-        crud_view = CrudEmpleadoView(self.content_frame, self.empleado_controller)
+        crud_view = CrudEmpleadoView(
+            self.content_frame,
+            self.empleado_controller,
+            self.config_controller,
+        )
         return crud_view.crear_frame()
 
     # ============================================================
@@ -326,7 +597,11 @@ class MainView:
     # ============================================================
     def _create_liquidar_nomina_frame(self):
         """Crea el frame de liquidación de nómina quincenal."""
-        liquidar_view = LiquidarNominaView(self.content_frame, self.nomina_controller)
+        liquidar_view = LiquidarNominaView(
+            self.content_frame,
+            self.nomina_controller,
+            self.empleado_controller,
+        )
         return liquidar_view.crear_frame()
 
     def _create_historial_nomina_frame(self):

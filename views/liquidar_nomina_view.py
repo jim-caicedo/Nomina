@@ -1,35 +1,115 @@
 """
 Vista de liquidación de nómina quincenal.
-Permite calcular y visualizar la nómina de todos los empleados en un período.
+Solo maneja interacción con el usuario - sin lógica de negocio.
 """
 
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
 from datetime import datetime, date
 from controllers.nomina_controller import NominaController
-from config.constants import COLORES, FORMATO_FECHA
+from utils.ui_theme import COLORES, FORMATO_FECHA
 from utils.excel_exporter import exportar_nomina_a_excel
+
+try:
+    from tkcalendar import DateEntry
+    TKCALENDAR_DISPONIBLE = True
+except ImportError:
+    TKCALENDAR_DISPONIBLE = False
+    print("⚠️ tkcalendar no está instalado. Ejecuta: pip install tkcalendar babel")
+
+
+class SelectorCalendario(ctk.CTkFrame):
+    """Selector de fecha con calendario desplegable visual."""
+    
+    def __init__(self, parent, label_text: str, **kwargs):
+        super().__init__(parent, fg_color="transparent", **kwargs)
+        
+        self.label = ctk.CTkLabel(
+            self,
+            text=label_text,
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        self.label.pack(anchor="w", padx=0, pady=(0, 4))
+        
+        if TKCALENDAR_DISPONIBLE:
+            self.date_entry = DateEntry(
+                self,
+                width=12,
+                background='#1f2937',
+                foreground='white',
+                borderwidth=2,
+                bordercolor='#374151',
+                selectbackground='#3b82f6',
+                selectforeground='white',
+                othermonthforeground='#6b7280',
+                othermonthweforeground='#4b5563',
+                weekendbackground='#111827',
+                weekendforeground='#9ca3af',
+                headersbackground='#1f2937',
+                headersforeground='#60a5fa',
+                normalbackground='#1f2937',
+                normalforeground='white',
+                font=('Segoe UI', 11),
+                date_pattern='dd/mm/yyyy',
+                locale='es_CO',
+                mindate=date(2024, 1, 1),
+                maxdate=date(2030, 12, 31)
+            )
+            self.date_entry.pack(fill="x", padx=0, pady=0)
+        else:
+            self.fallback_entry = ctk.CTkEntry(
+                self,
+                placeholder_text="DD/MM/YYYY",
+                height=36,
+                font=ctk.CTkFont(size=12)
+            )
+            self.fallback_entry.pack(fill="x")
+    
+    def get_fecha(self) -> date:
+        """Retorna la fecha seleccionada."""
+        if TKCALENDAR_DISPONIBLE:
+            return self.date_entry.get_date()
+        else:
+            fecha_str = self.fallback_entry.get().strip()
+            if fecha_str:
+                return datetime.strptime(fecha_str, FORMATO_FECHA).date()
+            return date.today()
+    
+    def set_fecha(self, fecha: date):
+        """Establece la fecha del selector."""
+        if TKCALENDAR_DISPONIBLE:
+            self.date_entry.set_date(fecha)
+        else:
+            self.fallback_entry.delete(0, 'end')
+            self.fallback_entry.insert(0, fecha.strftime(FORMATO_FECHA))
 
 
 class LiquidarNominaView:
-    """Vista para la liquidación de nómina."""
+    """Vista para la liquidación de nómina - Solo UI, sin lógica de negocio."""
 
-    def __init__(self, content_frame: ctk.CTkFrame, controller: NominaController):
+    def __init__(
+        self,
+        content_frame: ctk.CTkFrame,
+        controller: NominaController,
+        empleado_controller=None,
+    ):
         self.content_frame = content_frame
         self.controller = controller
+        self.empleado_controller = empleado_controller
         self.frame = None
 
-        # Variables de entrada
-        self.entrada_fecha_inicio = None
-        self.entrada_fecha_cierre = None
-        self.entrada_dias_laborados = None
-        self.entrada_horas_extras = None
+        # Selectores de calendario
+        self.selector_fecha_inicio = None
+        self.selector_fecha_cierre = None
 
         # Frame de resultados
         self.scroll_resultados = None
         self.label_totales = None
         self.label_omitidos = None
         self._omitidos_global = []
+        
+        # Último resultado calculado
+        self.ultimo_resultado = None
 
     def crear_frame(self) -> ctk.CTkFrame:
         """Crea el frame principal de liquidación de nómina."""
@@ -49,46 +129,33 @@ class LiquidarNominaView:
         # ========== FORMULARIO ==========
         form_frame = ctk.CTkFrame(self.frame, fg_color="#1f2937", corner_radius=16)
         form_frame.grid(row=1, column=0, padx=20, pady=(0, 20), sticky="ew")
-        form_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        form_frame.grid_columnconfigure((0, 1), weight=1)
 
-        # Fila 1: Fechas
-        ctk.CTkLabel(
-            form_frame, text="Fecha Inicio (DD/MM/YYYY):", font=ctk.CTkFont(size=12, weight="bold")
-        ).grid(row=0, column=0, padx=12, pady=(16, 4), sticky="w")
-        self.entrada_fecha_inicio = ctk.CTkEntry(
-            form_frame, placeholder_text="Ej: 01/05/2026", height=36
+        # Fila 1: Selectores de calendario
+        self.selector_fecha_inicio = SelectorCalendario(
+            form_frame,
+            label_text="📅 Fecha Inicio (Día 1 o 16):"
         )
-        self.entrada_fecha_inicio.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="ew")
-
-        ctk.CTkLabel(
-            form_frame, text="Fecha Cierre (DD/MM/YYYY):", font=ctk.CTkFont(size=12, weight="bold")
-        ).grid(row=0, column=1, padx=12, pady=(16, 4), sticky="w")
-        self.entrada_fecha_cierre = ctk.CTkEntry(
-            form_frame, placeholder_text="Ej: 15/05/2026", height=36
+        self.selector_fecha_inicio.grid(row=0, column=0, padx=12, pady=(16, 12), sticky="ew")
+        
+        self.selector_fecha_cierre = SelectorCalendario(
+            form_frame,
+            label_text="📅 Fecha Cierre (Día 15 o último día):"
         )
-        self.entrada_fecha_cierre.grid(row=1, column=1, padx=12, pady=(0, 12), sticky="ew")
-
-        ctk.CTkLabel(
-            form_frame, text="Días Laborados:", font=ctk.CTkFont(size=12, weight="bold")
-        ).grid(row=0, column=2, padx=12, pady=(16, 4), sticky="w")
-        self.entrada_dias_laborados = ctk.CTkEntry(
-            form_frame, placeholder_text="Ej: 15", height=36
+        self.selector_fecha_cierre.grid(row=0, column=1, padx=12, pady=(16, 12), sticky="ew")
+        
+        # Label informativo
+        info_label = ctk.CTkLabel(
+            form_frame,
+            text="💡 Primera quincena: del 1 al 15 | Segunda quincena: del 16 al último día del mes",
+            font=ctk.CTkFont(size=11),
+            text_color="#60a5fa"
         )
-        self.entrada_dias_laborados.insert(0, "15")
-        self.entrada_dias_laborados.grid(row=1, column=2, padx=12, pady=(0, 12), sticky="ew")
-
-        ctk.CTkLabel(
-            form_frame, text="Horas Extras:", font=ctk.CTkFont(size=12, weight="bold")
-        ).grid(row=0, column=3, padx=12, pady=(16, 4), sticky="w")
-        self.entrada_horas_extras = ctk.CTkEntry(
-            form_frame, placeholder_text="Ej: 0", height=36
-        )
-        self.entrada_horas_extras.insert(0, "0")
-        self.entrada_horas_extras.grid(row=1, column=3, padx=12, pady=(0, 12), sticky="ew")
-
+        info_label.grid(row=1, column=0, columnspan=2, padx=12, pady=(0, 12), sticky="w")
+        
         # Botones de acción
         botones_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        botones_frame.grid(row=2, column=0, columnspan=4, padx=12, pady=(0, 16), sticky="ew")
+        botones_frame.grid(row=4, column=0, columnspan=2, padx=12, pady=(0, 16), sticky="ew")
         botones_frame.grid_columnconfigure((0, 1), weight=1)
 
         btn_calcular = ctk.CTkButton(
@@ -133,7 +200,7 @@ class LiquidarNominaView:
         # Label vacío para mostrar mensaje inicial
         label_empty = ctk.CTkLabel(
             self.scroll_resultados,
-            text="Ingresa los datos y haz clic en 'Calcular Nómina'",
+            text="Selecciona las fechas en el calendario y haz clic en 'Calcular Nómina'",
             font=ctk.CTkFont(size=14),
             text_color="#9ca3af",
         )
@@ -154,54 +221,36 @@ class LiquidarNominaView:
         return self.frame
 
     def _calcular_nomina(self):
-        """Calcula la nómina para el período especificado."""
-        try:
-            # Validar y parsear fechas
-            fecha_inicio_str = self.entrada_fecha_inicio.get().strip()
-            fecha_cierre_str = self.entrada_fecha_cierre.get().strip()
-            dias_laborados_str = self.entrada_dias_laborados.get().strip()
-            horas_extras_str = self.entrada_horas_extras.get().strip()
+        """Solo captura datos de UI y llama al controlador.
 
-            if not fecha_inicio_str or not fecha_cierre_str:
-                messagebox.showerror("Error", "Las fechas son obligatorias (formato DD/MM/YYYY).")
-                return
+        Los días laborados y las horas extras ya no se capturan manualmente:
+        el controlador los deriva a partir del período (fecha_inicio, fecha_cierre).
+        """
+        # Capturar datos de UI
+        fecha_inicio = self.selector_fecha_inicio.get_fecha()
+        fecha_cierre = self.selector_fecha_cierre.get_fecha()
 
-            try:
-                fecha_inicio = datetime.strptime(fecha_inicio_str, FORMATO_FECHA).date()
-                fecha_cierre = datetime.strptime(fecha_cierre_str, FORMATO_FECHA).date()
-            except ValueError:
-                messagebox.showerror("Error", "Formato de fecha inválido. Usa DD/MM/YYYY.")
-                return
-
-            if not dias_laborados_str or not horas_extras_str:
-                messagebox.showerror("Error", "Días laborados y horas extras son obligatorios.")
-                return
-
-            try:
-                dias_laborados = int(dias_laborados_str)
-                horas_extras = int(horas_extras_str)
-            except ValueError:
-                messagebox.showerror("Error", "Días y horas extras deben ser números enteros.")
-                return
-
-            # Llamar al controlador para liquidar
-            resultado = self.controller.liquidar_nomina_periodo(
-                fecha_inicio, fecha_cierre, dias_laborados, horas_extras
+        if fecha_inicio >= fecha_cierre:
+            messagebox.showerror(
+                "Error", "La fecha de inicio debe ser anterior a la fecha de cierre."
             )
+            return
 
-            if not resultado["success"]:
-                messagebox.showerror("Error", resultado["error"])
-                return
+        # Llamar al controlador - TODO el procesamiento está ahí
+        resultado = self.controller.liquidar_nomina_periodo(fecha_inicio, fecha_cierre)
 
-            # Mostrar resultados
-            self._mostrar_resultados(resultado)
-            self.ultimo_resultado = resultado
 
-        except Exception as e:
-            messagebox.showerror("Error", f"Error al calcular nómina: {str(e)}")
+        # Mostrar resultado según respuesta del controlador
+        if not resultado["success"]:
+            messagebox.showerror("Error", resultado["error"])
+            return
+
+        # Mostrar resultados
+        self._mostrar_resultados(resultado)
+        self.ultimo_resultado = resultado
 
     def _mostrar_resultados(self, resultado: dict):
-        """Muestra los resultados de la liquidación."""
+        """Muestra los resultados de la liquidación en la UI."""
         # Limpiar scroll
         for widget in self.scroll_resultados.winfo_children():
             widget.destroy()
@@ -252,7 +301,11 @@ class LiquidarNominaView:
             row_frame.grid_columnconfigure(tuple(range(len(headers))), weight=1)
 
             # Obtener datos del empleado
-            empleado = self.controller.buscar_empleado(registro["empleado_id"])
+            empleado = (
+                self.empleado_controller.buscar_empleado(registro["empleado_id"])
+                if self.empleado_controller
+                else None
+            )
             nombre_completo = f"{empleado.nombre} {empleado.apellido}" if empleado else "N/A"
 
             datos = [
@@ -317,65 +370,41 @@ class LiquidarNominaView:
             self._omitidos_global = []
 
     def _exportar_excel(self):
-        """Exporta la nómina a Excel."""
-        try:
-            # Verificar si hay resultado calculado
-            if not self.ultimo_resultado:
-                messagebox.showwarning(
-                    "Sin datos",
-                    "No hay resultados de cálculo. Calcula la nómina primero.",
-                )
-                return
-
-            # Obtener fechas del resultado
-            fecha_inicio_str = self.entrada_fecha_inicio.get().strip()
-            fecha_cierre_str = self.entrada_fecha_cierre.get().strip()
-
-            try:
-                fecha_inicio = datetime.strptime(fecha_inicio_str, FORMATO_FECHA).date()
-                fecha_cierre = datetime.strptime(fecha_cierre_str, FORMATO_FECHA).date()
-            except ValueError:
-                messagebox.showerror("Error", "Formato de fecha inválido.")
-                return
-
-            # Obtener registros del repositorio
-            registros = self.controller.repo_nomina.obtener_por_periodo(
-                fecha_inicio, fecha_cierre
+        """Solo solicita ruta y llama al controlador para exportar."""
+        if not self.ultimo_resultado:
+            messagebox.showwarning(
+                "Sin datos",
+                "No hay resultados de cálculo. Calcula la nómina primero.",
             )
+            return
 
-            if not registros:
-                messagebox.showwarning(
-                    "Sin datos",
-                    "No hay registros para el período especificado.",
-                )
-                return
+        # Obtener fechas de los selectores
+        fecha_inicio = self.selector_fecha_inicio.get_fecha()
+        fecha_cierre = self.selector_fecha_cierre.get_fecha()
 
-            # Solicitar ubicación para guardar
-            ruta_archivo = filedialog.asksaveasfilename(
-                defaultextension=".xlsx",
-                filetypes=[("Archivos Excel", "*.xlsx")],
-                initialfile=f"nomina_{fecha_inicio.strftime('%Y%m%d')}_"
-                f"{fecha_cierre.strftime('%Y%m%d')}.xlsx",
-            )
+        # Solicitar ubicación para guardar
+        ruta_archivo = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Archivos Excel", "*.xlsx")],
+            initialfile=f"nomina_{fecha_inicio.strftime('%Y%m%d')}_"
+            f"{fecha_cierre.strftime('%Y%m%d')}.xlsx",
+        )
 
-            if not ruta_archivo:
-                return  # Usuario canceló
+        if not ruta_archivo:
+            return  # Usuario canceló
 
-            # Exportar usando el servicio
-            exportar_nomina_a_excel(registros, fecha_inicio, fecha_cierre, ruta_archivo)
+        # Llamar al controlador para exportar
+        resultado = self.controller.exportar_nomina_excel(
+            fecha_inicio, fecha_cierre, ruta_archivo
+        )
 
+        if resultado["success"]:
             messagebox.showinfo(
                 "Éxito",
                 f"Archivo exportado exitosamente:\n{ruta_archivo}",
             )
-
-        except ImportError:
-            messagebox.showerror(
-                "Error",
-                "openpyxl no está instalado. Ejecuta: pip install openpyxl",
-            )
-        except Exception as e:
-            messagebox.showerror("Error", f"Error al exportar: {str(e)}")
+        else:
+            messagebox.showerror("Error", resultado["error"])
 
     def _mostrar_omitidos_modal(self, event=None):
         """Muestra una ventana modal con la lista de conceptos omitidos."""

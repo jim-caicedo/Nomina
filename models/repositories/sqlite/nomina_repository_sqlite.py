@@ -44,13 +44,14 @@ class NominaRepositorySQLite(NominaRepository):
             cursor = self.db.get_connection().cursor()
             cursor.execute("""
                 INSERT INTO registros_nomina 
-                (empleado_id, periodo_inicio, periodo_cierre, dias_laborados,
+                (empleado_id, periodo_id, periodo_inicio, periodo_cierre, dias_laborados,
                  salario_base_periodo, auxilio_transporte_periodo, horas_extras,
                  valor_horas_extras, total_devengado, descuento_afp, descuento_eps,
                  otros_descuentos, total_deducciones, salario_neto)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 registro.empleado_id,
+                registro.periodo_id,
                 registro.periodo_inicio.strftime("%Y-%m-%d"),
                 registro.periodo_cierre.strftime("%Y-%m-%d"),
                 registro.dias_laborados,
@@ -90,17 +91,15 @@ class NominaRepositorySQLite(NominaRepository):
         except sqlite3.Error:
             return []
 
-    def obtener_por_periodo(self, fecha_inicio: date, fecha_cierre: date) -> List[RegistroNomina]:
+    def obtener_por_periodo_id(self, periodo_id: int) -> List[RegistroNomina]:
+        """¡NUEVO MÉTODO! Reemplaza la búsqueda por fechas primitivas y busca por ID real"""
         try:
             cursor = self.db.get_connection().cursor()
             cursor.execute("""
                 SELECT * FROM registros_nomina 
-                WHERE periodo_inicio = ? AND periodo_cierre = ?
+                WHERE periodo_id = ?
                 ORDER BY id
-            """, (
-                fecha_inicio.strftime("%Y-%m-%d"),
-                fecha_cierre.strftime("%Y-%m-%d"),
-            ))
+            """, (periodo_id,))
             rows = cursor.fetchall()
             return [self._row_to_registro(row) for row in rows]
         except sqlite3.Error:
@@ -118,3 +117,26 @@ class NominaRepositorySQLite(NominaRepository):
             return [self._row_to_registro(row) for row in rows]
         except sqlite3.Error:
             return []
+    
+    def obtener_por_periodo(self, fecha_inicio: date, fecha_cierre: date) -> List[RegistroNomina]:
+            """
+            Método exigido por la interfaz base abstracta.
+            Para mantener compatibilidad y que no estalle el sistema, busca 
+            los registros usando un JOIN con la tabla periodos_nomina.
+            """
+            try:
+                cursor = self.db.get_connection().cursor()
+                cursor.execute("""
+                    SELECT r.* FROM registros_nomina r
+                    JOIN periodos_nomina p ON r.periodo_id = p.id
+                    WHERE p.fecha_inicio = ? AND p.fecha_fin = ?
+                    ORDER BY r.id
+                """, (
+                    fecha_inicio.strftime("%Y-%m-%d") if isinstance(fecha_inicio, date) else fecha_inicio,
+                    fecha_cierre.strftime("%Y-%m-%d") if isinstance(fecha_cierre, date) else fecha_cierre,
+                ))
+                rows = cursor.fetchall()
+                return [self._row_to_registro(row) for row in rows]
+            except sqlite3.Error as e:
+                print(f"Error en obtener_por_periodo (legacy): {e}")
+                return []

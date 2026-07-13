@@ -6,7 +6,7 @@ Permite al usuario configurar y guardar parámetros legales vigentes.
 import customtkinter as ctk
 from tkinter import messagebox
 from controllers.configuracion_controller import ConfiguracionController
-from config.constants import COLORES
+from utils.ui_theme import COLORES
 
 
 class ConfiguracionView:
@@ -48,7 +48,7 @@ class ConfiguracionView:
         ctk.CTkLabel(
             form_frame, text="Año Vigente:", font=ctk.CTkFont(size=12, weight="bold")
         ).grid(row=0, column=0, padx=16, pady=(16, 4), sticky="w")
-        self.var_anio = ctk.StringVar(value="2026")
+        self.var_anio = ctk.StringVar(value="")
         entry_anio = ctk.CTkEntry(form_frame, textvariable=self.var_anio, height=36)
         entry_anio.grid(row=1, column=0, padx=16, pady=(0, 12), sticky="ew")
 
@@ -56,7 +56,7 @@ class ConfiguracionView:
         ctk.CTkLabel(
             form_frame, text="Salario Mínimo Mensual ($):", font=ctk.CTkFont(size=12, weight="bold")
         ).grid(row=2, column=0, padx=16, pady=(8, 4), sticky="w")
-        self.var_salario_minimo = ctk.StringVar(value="1,423,500")
+        self.var_salario_minimo = ctk.StringVar(value="")
         entry_salario = ctk.CTkEntry(form_frame, textvariable=self.var_salario_minimo, height=36)
         entry_salario.grid(row=3, column=0, padx=16, pady=(0, 12), sticky="ew")
 
@@ -64,7 +64,7 @@ class ConfiguracionView:
         ctk.CTkLabel(
             form_frame, text="Auxilio Transporte Mensual ($):", font=ctk.CTkFont(size=12, weight="bold")
         ).grid(row=4, column=0, padx=16, pady=(8, 4), sticky="w")
-        self.var_auxilio_transporte = ctk.StringVar(value="161,916")
+        self.var_auxilio_transporte = ctk.StringVar(value="")
         entry_auxilio = ctk.CTkEntry(form_frame, textvariable=self.var_auxilio_transporte, height=36)
         entry_auxilio.grid(row=5, column=0, padx=16, pady=(0, 12), sticky="ew")
 
@@ -72,7 +72,7 @@ class ConfiguracionView:
         ctk.CTkLabel(
             form_frame, text="% AFP (Pensión):", font=ctk.CTkFont(size=12, weight="bold")
         ).grid(row=0, column=1, padx=16, pady=(16, 4), sticky="w")
-        self.var_porcentaje_afp = ctk.StringVar(value="4.00")
+        self.var_porcentaje_afp = ctk.StringVar(value="")
         entry_afp = ctk.CTkEntry(form_frame, textvariable=self.var_porcentaje_afp, height=36)
         entry_afp.grid(row=1, column=1, padx=16, pady=(0, 12), sticky="ew")
 
@@ -80,7 +80,7 @@ class ConfiguracionView:
         ctk.CTkLabel(
             form_frame, text="% EPS (Salud):", font=ctk.CTkFont(size=12, weight="bold")
         ).grid(row=2, column=1, padx=16, pady=(8, 4), sticky="w")
-        self.var_porcentaje_eps = ctk.StringVar(value="4.00")
+        self.var_porcentaje_eps = ctk.StringVar(value="")
         entry_eps = ctk.CTkEntry(form_frame, textvariable=self.var_porcentaje_eps, height=36)
         entry_eps.grid(row=3, column=1, padx=16, pady=(0, 12), sticky="ew")
 

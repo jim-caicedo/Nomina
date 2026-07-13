@@ -13,6 +13,7 @@ class RegistroNomina:
     """Registro de liquidación de nómina para un empleado en un período"""
     id: Optional[int] = None
     empleado_id: int = 0
+    periodo_id: Optional[int] = None
     periodo_inicio: date = None
     periodo_cierre: date = None
     dias_laborados: int = 0
@@ -44,6 +45,7 @@ class RegistroNomina:
         return {
             "id": self.id,
             "empleado_id": self.empleado_id,
+            "periodo_id": self.periodo_id,
             "periodo_inicio": self.periodo_inicio.strftime("%Y-%m-%d") if self.periodo_inicio else None,
             "periodo_cierre": self.periodo_cierre.strftime("%Y-%m-%d") if self.periodo_cierre else None,
             "dias_laborados": self.dias_laborados,

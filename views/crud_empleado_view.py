@@ -1,13 +1,20 @@
 import customtkinter as ctk
 from tkinter import messagebox
+from controllers.configuracion_controller import ConfiguracionController
 from controllers.empleado_controller import EmpleadoController
-from config.constants import COLORES
+from utils.ui_theme import COLORES
 
 
 class CrudEmpleadoView:
-    def __init__(self, content_frame: ctk.CTkFrame, controller: EmpleadoController):
+    def __init__(
+        self,
+        content_frame: ctk.CTkFrame,
+        controller: EmpleadoController,
+        config_controller: ConfiguracionController | None = None,
+    ):
         self.content_frame = content_frame
         self.controller = controller
+        self.config_controller = config_controller
         self.frame = None
         self.scroll_frame = None
         self.empleado_seleccionado_id = None
@@ -442,9 +449,11 @@ class CrudEmpleadoView:
             if not salario_str:
                 return
 
+            if not self.config_controller:
+                return
+
             salario = float(salario_str)
-            # Obtener configuración actual
-            config = self.controller.config_controller.obtener_configuracion_obj()
+            config = self.config_controller.obtener_configuracion_obj()
             limite_smmlv = 2 * config.salario_minimo_mensual
 
             # Marcar/desmarcar según salario

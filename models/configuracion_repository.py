@@ -7,6 +7,7 @@ import sqlite3
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from database.db_manager import DBManager
+from database.seed_data import seed_configuracion_si_vacia
 from models.domain.configuracion import ConfiguracionNomina
 
 
@@ -33,41 +34,8 @@ class ConfiguracionRepositorySQLite(ConfiguracionRepositoryBase):
         self._inicializar_si_vacio()
 
     def _inicializar_si_vacio(self):
-        """Inicializa la BD con configuración por defecto si está vacía."""
-        try:
-            cursor = self.db.get_connection().cursor()
-            cursor.execute("SELECT COUNT(*) FROM configuracion_legal")
-            count = cursor.fetchone()[0]
-
-            if count == 0:
-                config_default = ConfiguracionNomina.crear_default_2026()
-                self._insertar_configuracion(config_default)
-        except sqlite3.Error as e:
-            print(f"Error al inicializar BD: {e}")
-
-    def _insertar_configuracion(self, config: ConfiguracionNomina) -> None:
-        """Inserta una configuración en la BD sin desactivar anterior."""
-        try:
-            cursor = self.db.get_connection().cursor()
-            cursor.execute(
-                """
-                INSERT INTO configuracion_legal
-                (anio_vigente, salario_minimo_mensual, auxilio_transporte_mensual,
-                 porcentaje_afp, porcentaje_eps, activa)
-                VALUES (?, ?, ?, ?, ?, 1)
-                """,
-                (
-                    config.anio_vigente,
-                    config.salario_minimo_mensual,
-                    config.auxilio_transporte_mensual,
-                    config.porcentaje_afp,
-                    config.porcentaje_eps,
-                ),
-            )
-            self.db.get_connection().commit()
-        except sqlite3.Error as e:
-            print(f"Error al insertar configuración: {e}")
-            self.db.get_connection().rollback()
+        """Inicializa la BD con configuración inicial si la tabla está vacía."""
+        seed_configuracion_si_vacia(self.db)
 
     def obtener_configuracion_actual(self) -> ConfiguracionNomina:
         """
@@ -104,8 +72,10 @@ class ConfiguracionRepositorySQLite(ConfiguracionRepositoryBase):
                     fecha_creacion=row[6],
                     activa=bool(row[7]),
                 )
-            # Retornar default si no hay configuración activa
-            return ConfiguracionNomina.crear_default_2026()
+            raise RuntimeError(
+                "No hay configuración legal activa en la base de datos. "
+                "Ejecute: python database/seed_data.py"
+            )
         except Exception as e:
             raise Exception(f"Error al obtener configuración: {str(e)}")
 

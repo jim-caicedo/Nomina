@@ -35,7 +35,7 @@ class EmpleadoRepositorySQLite(EmpleadoRepository):
             eps=row["eps"] or "EPS por asignar",
             afp=row["afp"] or "AFP por asignar",
             sede_laboral=row["sede_laboral"] or "",
-            auxilio_transporte_mensual=float(row["auxilio_transporte_mensual"] or 161916.0),
+            auxilio_transporte_mensual=float(row["auxilio_transporte_mensual"] or 0.0),
             fecha_ingreso=row["fecha_ingreso"],
             horas_extra=float(row["horas_extra"] or 0.0),
             recibe_auxilio_transporte=recibe_aux,

@@ -41,6 +41,13 @@ class DBManager:
         # Crear tablas si no existen
         self._create_tables()
 
+        # Seed de configuración legal si la BD está vacía
+        try:
+            from database.seed_data import seed_configuracion_si_vacia
+            seed_configuracion_si_vacia(self)
+        except Exception as e:
+            print(f"Error al sembrar configuración legal: {e}")
+
     def _create_tables(self) -> None:
         """Crea todas las tablas necesarias."""
         cursor = self._connection.cursor()
@@ -85,7 +92,7 @@ class DBManager:
                 eps TEXT DEFAULT 'EPS por asignar',
                 afp TEXT DEFAULT 'AFP por asignar',
                 sede_laboral TEXT DEFAULT '',
-                auxilio_transporte_mensual REAL DEFAULT 161916.0,
+                auxilio_transporte_mensual REAL DEFAULT 0,
                 fecha_ingreso TIMESTAMP,
                 horas_extra REAL DEFAULT 0.0,
                 recibe_auxilio_transporte INTEGER DEFAULT 1,
