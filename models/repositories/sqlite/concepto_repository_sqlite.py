@@ -6,13 +6,10 @@ from __future__ import annotations
 from typing import List, Optional
 import sqlite3
 from database.db_manager import DBManager
-from models.repositories.interfaces.concepto_repository import ConceptoRepository, ConceptoEmpleadoRepository, RegistroConceptoRepository
-from models.domain.conceptos.concepto_nomina import ConceptoNomina
-from models.domain.conceptos.concepto_empleado import ConceptoEmpleado
-from models.domain.conceptos.registro_concepto import RegistroConceptoNomina
+from models.domain.concepto import ConceptoNomina, ConceptoEmpleado, RegistroConceptoNomina
 
 
-class ConceptoRepositorySQLite(ConceptoRepository):
+class ConceptoRepositorySQLite:
     """Implementación SQLite para catálogo de conceptos"""
     
     def __init__(self, db_manager: DBManager = None):
@@ -119,7 +116,7 @@ class ConceptoRepositorySQLite(ConceptoRepository):
             return False
 
 
-class ConceptoEmpleadoRepositorySQLite(ConceptoEmpleadoRepository):
+class ConceptoEmpleadoRepositorySQLite:
     """Implementación SQLite para asignaciones de conceptos a empleados"""
     
     def __init__(self, db_manager: DBManager = None):
@@ -156,7 +153,7 @@ class ConceptoEmpleadoRepositorySQLite(ConceptoEmpleadoRepository):
             cursor.execute(
                 """
                 INSERT INTO conceptos_empleado 
-                (empleado_id, tema_id, nombre, tipo, naturaleza, valor_personalizado, porcentaje_personalizado, base_calculo, activo)
+                (empleado_id, concepto_id, nombre, tipo, naturaleza, valor_personalizado, porcentaje_personalizado, base_calculo, activo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
@@ -206,7 +203,7 @@ class ConceptoEmpleadoRepositorySQLite(ConceptoEmpleadoRepository):
             return False
 
 
-class RegistroConceptoRepositorySQLite(RegistroConceptoRepository):
+class RegistroConceptoRepositorySQLite:
     """Implementación SQLite para registros de conceptos calculados"""
     
     def __init__(self, db_manager: DBManager = None):

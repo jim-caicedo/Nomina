@@ -7,11 +7,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Optional
 from models.domain.configuracion import ConfiguracionNomina
+from models.domain.enums import TipoCuenta, TipoDocumento
 
 
 @dataclass
 class Empleado:
-    """Modelo de dominio puro - solo datos y validaciones básicas"""
+    """Modelo de dominio puro — solo datos y validaciones básicas."""
     id: Optional[int] = None
     nombre: str = ""
     apellido: str = ""
@@ -23,14 +24,17 @@ class Empleado:
     eps: str = ""
     afp: str = ""
     sede_laboral: str = ""
-    auxilio_transporte_mensual: float = 0.0
+    cedula: str = ""
     fecha_ingreso: Optional[datetime] = None
     horas_extra: float = 0.0
     recibe_auxilio_transporte: bool = True
     activo: bool = True
-    
+    # Campos bancarios — necesarios para Excel banco
+    codigo_banco: str = ""
+    tipo_cuenta: str = TipoCuenta.AHORROS.value
+    tipo_documento: str = TipoDocumento.CC.value
+
     def validar(self) -> tuple[bool, str]:
-        """Validación básica de datos"""
         if not self.nombre or not self.apellido:
             return False, "Nombre y apellido son obligatorios"
         if not self.cargo:
@@ -38,17 +42,17 @@ class Empleado:
         if self.salario <= 0:
             return False, "Salario debe ser positivo"
         return True, ""
-    
+
     def get_nombre_completo(self) -> str:
         return f"{self.nombre} {self.apellido}".strip()
-    
+
     def debe_recibir_auxilio(self, config: ConfiguracionNomina) -> bool:
-        """Determina si debe recibir auxilio de transporte según la config legal vigente."""
+        """El valor del auxilio siempre viene de ConfiguracionNomina — fuente única."""
         return (
             self.recibe_auxilio_transporte
             and self.salario <= (2 * config.salario_minimo_mensual)
         )
-    
+
     def to_dict(self) -> Dict[str, object]:
         return {
             "id": self.id,
@@ -63,9 +67,12 @@ class Empleado:
             "eps": self.eps,
             "afp": self.afp,
             "sede_laboral": self.sede_laboral,
-            "auxilio_transporte_mensual": self.auxilio_transporte_mensual,
+            "cedula": self.cedula,
             "fecha_ingreso": self.fecha_ingreso,
             "horas_extra": self.horas_extra,
             "recibe_auxilio_transporte": self.recibe_auxilio_transporte,
             "activo": self.activo,
+            "codigo_banco": self.codigo_banco,
+            "tipo_cuenta": self.tipo_cuenta,
+            "tipo_documento": self.tipo_documento,
         }

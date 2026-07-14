@@ -76,7 +76,7 @@ def seed_database() -> None:
     DBManager()
     seed_configuracion_si_vacia()
 
-    from models.configuracion_repository import ConfiguracionRepositorySQLite
+    from models.repositories.sqlite.configuracion_repository_sqlite import ConfiguracionRepositorySQLite
 
     repo = ConfiguracionRepositorySQLite()
     config = repo.obtener_configuracion_actual()

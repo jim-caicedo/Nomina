@@ -83,14 +83,6 @@ class MainView:
         )
         btn_dashboard.grid(row=2, column=0, padx=20, pady=8, sticky="ew")
 
-        btn_empleados = ctk.CTkButton(
-            self.sidebar,
-            text="Empleados",
-            command=lambda: self._show_frame("empleados"),
-            anchor="w"
-        )
-        btn_empleados.grid(row=3, column=0, padx=20, pady=8, sticky="ew")
-
         btn_crud = ctk.CTkButton(
             self.sidebar,
             text="Gestionar Empleados",
@@ -142,7 +134,6 @@ class MainView:
         # ============================================================
         self._frame_factories = {
             "dashboard": self._create_dashboard_frame,
-            "empleados": self._create_empleados_frame,
             "crud": self._create_crud_frame,
             "liquidar_nomina": self._create_liquidar_nomina_frame,
             "historial_nomina": self._create_historial_nomina_frame,
@@ -500,85 +491,6 @@ class MainView:
         label_value.grid(row=1, column=0, padx=16, pady=(0, 16), sticky="w")
 
         return card
-
-    # ============================================================
-    # EMPLEADOS - Layout Responsive
-    # ============================================================
-    def _create_empleados_frame(self):
-        frame = ctk.CTkFrame(self.content_frame, corner_radius=20)
-        frame.grid(row=0, column=0, sticky="nsew")
-        frame.grid_rowconfigure(1, weight=1)
-        frame.grid_columnconfigure(0, weight=1)
-
-        title = ctk.CTkLabel(
-            frame,
-            text="Empleados",
-            font=ctk.CTkFont(size=24, weight="bold")
-        )
-        title.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
-
-        # Contenedor de la tabla
-        table_frame = ctk.CTkFrame(frame, fg_color="#1f2937", corner_radius=16)
-        table_frame.grid(row=1, column=0, padx=20, pady=(0, 20), sticky="nsew")
-        table_frame.grid_rowconfigure(1, weight=1)
-        table_frame.grid_columnconfigure(0, weight=1)
-
-        # Header de la tabla
-        headers = ["Nombre", "Cargo", "Salario"]
-        header_container = ctk.CTkFrame(
-            table_frame,
-            fg_color="#111827",
-            corner_radius=12
-        )
-        header_container.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 0))
-        header_container.grid_columnconfigure((0, 1, 2), weight=1)
-
-        for index, label in enumerate(headers):
-            ctk.CTkLabel(
-                header_container,
-                text=label,
-                font=ctk.CTkFont(size=13, weight="bold"),
-                anchor="w"
-            ).grid(row=0, column=index, padx=12, pady=12, sticky="ew")
-
-        # ScrollableFrame
-        scroll = ctk.CTkScrollableFrame(
-            table_frame,
-            corner_radius=16,
-            fg_color="#111827"
-        )
-        scroll.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
-        scroll.grid_columnconfigure(0, weight=1)
-
-        empleados = self.empleado_controller.obtener_empleados()
-        for index, empleado in enumerate(empleados):
-            row_frame = ctk.CTkFrame(
-                scroll,
-                fg_color="#1f2937",
-                corner_radius=12
-            )
-            row_frame.grid(row=index, column=0, padx=8, pady=6, sticky="ew")
-            row_frame.grid_columnconfigure((0, 1, 2), weight=1)
-
-            ctk.CTkLabel(
-                row_frame,
-                text=empleado["nombre"],
-                anchor="w"
-            ).grid(row=0, column=0, padx=12, pady=12, sticky="ew")
-
-            ctk.CTkLabel(
-                row_frame,
-                text=empleado["cargo"],
-                anchor="w"
-            ).grid(row=0, column=1, padx=12, pady=12, sticky="ew")
-
-            ctk.CTkLabel(
-                row_frame,
-                text=f"${empleado['salario']:,.2f}",
-                anchor="e"
-            ).grid(row=0, column=2, padx=12, pady=12, sticky="ew")
-
-        return frame
 
     # ============================================================
     # CRUD EMPLEADOS

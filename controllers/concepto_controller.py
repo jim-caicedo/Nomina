@@ -4,8 +4,8 @@ Maneja el catálogo de conceptos y asignaciones a empleados.
 """
 from typing import List, Dict, Optional
 from dataclasses import asdict
-from models.domain.conceptos.concepto_nomina import ConceptoNomina
-from models.domain.conceptos.concepto_empleado import ConceptoEmpleado
+from models.domain.concepto import ConceptoNomina
+from models.domain.concepto import ConceptoEmpleado
 from models.repositories.sqlite.empleado_repository_sqlite import EmpleadoRepositorySQLite
 from models.repositories.sqlite.concepto_repository_sqlite import ConceptoRepositorySQLite, ConceptoEmpleadoRepositorySQLite
 from database.db_manager import DBManager

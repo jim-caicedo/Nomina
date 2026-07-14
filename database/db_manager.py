@@ -92,7 +92,6 @@ class DBManager:
                 eps TEXT DEFAULT 'EPS por asignar',
                 afp TEXT DEFAULT 'AFP por asignar',
                 sede_laboral TEXT DEFAULT '',
-                auxilio_transporte_mensual REAL DEFAULT 0,
                 fecha_ingreso TIMESTAMP,
                 horas_extra REAL DEFAULT 0.0,
                 recibe_auxilio_transporte INTEGER DEFAULT 1,

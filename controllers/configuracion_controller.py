@@ -6,7 +6,7 @@ Maneja la lógica de negocio para configuración de parámetros legales.
 from typing import Dict, List
 from database.seed_data import crear_configuracion_inicial
 from models.domain.configuracion import ConfiguracionNomina
-from models.configuracion_repository import ConfiguracionRepositorySQLite
+from models.repositories.sqlite.configuracion_repository_sqlite import ConfiguracionRepositorySQLite
 
 
 class ConfiguracionController:

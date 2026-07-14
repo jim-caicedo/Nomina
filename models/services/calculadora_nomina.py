@@ -7,7 +7,7 @@ from datetime import date
 from models.domain.empleado import Empleado
 from models.domain.configuracion import ConfiguracionNomina
 from models.domain.nomina import RegistroNomina
-from models.resultado_liquidacion import ResultadoLiquidacion, ItemConcepto
+from models.domain.nomina import ResultadoLiquidacion, ItemConcepto
 
 
 class CalculadoraNomina:
@@ -52,44 +52,46 @@ class CalculadoraNomina:
         return base * self.config.porcentaje_eps
     
     def liquidar(
-        self,
-        empleado: Empleado,
-        fecha_inicio: date,
-        fecha_cierre: date,
-        dias_laborados: int,
-        horas_extras: int = 0,
-        conceptos_aplicados: list[ItemConcepto] = None,
-        conceptos_omitidos: list[dict] = None,
+    self,
+    empleado: Empleado,
+    fecha_inicio: date,
+    fecha_cierre: date,
+    dias_laborados: int,
+    horas_extras: int = 0,
+    conceptos_aplicados: list[ItemConcepto] = None,
+    conceptos_omitidos: list[dict] = None,
     ) -> ResultadoLiquidacion:
-        """Liquidación completa de un empleado"""
+        """Liquidación completa de un empleado — todos los valores a 2 decimales."""
         if not self.validar_periodo(fecha_inicio, fecha_cierre):
             raise ValueError("Período inválido")
-        
-        ordinario = self.calcular_ordinario(empleado, dias_laborados)
-        auxilio = self.calcular_auxilio_transporte(empleado, dias_laborados)
-        valor_horas_extras = self.calcular_horas_extras(empleado, horas_extras)
-        
+
+        ordinario = round(self.calcular_ordinario(empleado, dias_laborados), 2)
+        auxilio = round(self.calcular_auxilio_transporte(empleado, dias_laborados), 2)
+        valor_horas_extras = round(self.calcular_horas_extras(empleado, horas_extras), 2)
+
         total_devengado = ordinario + auxilio + valor_horas_extras
-        
-        # Sumar conceptos aplicados
+
         total_conceptos_devengados = 0.0
         total_conceptos_deducciones = 0.0
-        
+
         if conceptos_aplicados:
             for concepto in conceptos_aplicados:
                 if concepto.naturaleza == "devengado":
                     total_conceptos_devengados += concepto.valor
                 else:
                     total_conceptos_deducciones += concepto.valor
-        
-        total_devengado += total_conceptos_devengados
-        
-        afp = self.calcular_afp(ordinario)
-        eps = self.calcular_eps(ordinario)
-        
-        total_deducciones = afp + eps + total_conceptos_deducciones
-        salario_neto = total_devengado - total_deducciones
-        
+
+        total_conceptos_devengados = round(total_conceptos_devengados, 2)
+        total_conceptos_deducciones = round(total_conceptos_deducciones, 2)
+        total_devengado = round(total_devengado + total_conceptos_devengados, 2)
+
+        # AFP y EPS se calculan sobre ordinario (regla actual — revisar si debe incluir HE)
+        afp = round(self.calcular_afp(ordinario), 2)
+        eps = round(self.calcular_eps(ordinario), 2)
+
+        total_deducciones = round(afp + eps + total_conceptos_deducciones, 2)
+        salario_neto = round(total_devengado - total_deducciones, 2)
+
         return ResultadoLiquidacion(
             ordinario=ordinario,
             auxilio_transporte=auxilio,

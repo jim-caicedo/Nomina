@@ -10,7 +10,7 @@ from database.db_manager import DBManager
 
 class EmpleadoController:
     """Controlador para gestión de empleados (CRUD)."""
-    
+
     def __init__(self):
         """Inicializa el controlador con repositorio SQLite."""
         self.repo_empleados = EmpleadoRepositorySQLite(DBManager())
@@ -27,8 +27,9 @@ class EmpleadoController:
         self, 
         nombre: str, 
         apellido: str, 
-        cargo: str, 
-        salario: float, 
+        cedula: str = "",
+        cargo: str = "", 
+        salario: float = 0.0, 
         correo: str = "", 
         telefono: str = "", 
         numero_cuenta: str = "",
@@ -36,15 +37,27 @@ class EmpleadoController:
         afp: str = "AFP por asignar",
         sede_laboral: str = "",
         recibe_auxilio_transporte: bool = True,
+        recibe_auxilio: bool = True,  # Alias para compatibilidad con vista
+        codigo_banco: str = "",
+        tipo_cuenta: str = "AHORROS",
+        tipo_documento: str = "CC",
     ) -> Dict[str, object]:
         """Crea un nuevo empleado."""
-        if not nombre or not apellido or not cargo or salario <= 0:
-            return {"success": False, "error": "Datos inválidos. Verifica nombre, apellido, cargo y salario."}
-        
+        if not nombre or not apellido or not cedula or not cargo or salario <= 0:
+            return {"success": False, "error": "Datos inválidos. Verifica nombre, apellido, cédula, cargo y salario."}
+
+        # Validar cédula única
+        if self._cedula_existe(cedula):
+            return {"success": False, "error": f"Ya existe un empleado con la cédula {cedula}."}
+
+        # Usar el valor que venga (recibe_auxilio es alias de recibe_auxilio_transporte)
+        auxilio = recibe_auxilio_transporte if recibe_auxilio_transporte is not None else recibe_auxilio
+
         nuevo_empleado = Empleado(
             id=0, 
             nombre=nombre, 
             apellido=apellido, 
+            cedula=cedula,
             cargo=cargo, 
             salario=salario,
             correo=correo,
@@ -53,9 +66,12 @@ class EmpleadoController:
             eps=eps,
             afp=afp,
             sede_laboral=sede_laboral,
-            recibe_auxilio_transporte=recibe_auxilio_transporte,
+            recibe_auxilio_transporte=auxilio,
+            codigo_banco=codigo_banco,
+            tipo_cuenta=tipo_cuenta,
+            tipo_documento=tipo_documento,
         )
-        
+
         try:
             empleado_creado = self.repo_empleados.crear(nuevo_empleado)
             return {"success": True, "empleado": empleado_creado.to_dict()}
@@ -67,8 +83,9 @@ class EmpleadoController:
         empleado_id: int, 
         nombre: str, 
         apellido: str, 
-        cargo: str, 
-        salario: float, 
+        cedula: str = "",
+        cargo: str = "", 
+        salario: float = 0.0, 
         correo: str = "", 
         telefono: str = "", 
         numero_cuenta: str = "",
@@ -76,18 +93,25 @@ class EmpleadoController:
         afp: str = "AFP por asignar",
         sede_laboral: str = "",
         recibe_auxilio_transporte: bool = True,
+        recibe_auxilio: bool = True,  # Alias para compatibilidad
+        codigo_banco: str = "",
+        tipo_cuenta: str = "AHORROS",
+        tipo_documento: str = "CC",
     ) -> Dict[str, object]:
         """Actualiza un empleado existente."""
         if not self.repo_empleados.existe(empleado_id):
             return {"success": False, "error": "Empleado no encontrado."}
-        
-        if not nombre or not apellido or not cargo or salario <= 0:
-            return {"success": False, "error": "Datos inválidos. Verifica nombre, apellido, cargo y salario."}
-        
+
+        if not nombre or not apellido or not cedula or not cargo or salario <= 0:
+            return {"success": False, "error": "Datos inválidos. Verifica nombre, apellido, cédula, cargo y salario."}
+
+        auxilio = recibe_auxilio_transporte if recibe_auxilio_transporte is not None else recibe_auxilio
+
         empleado = Empleado(
             id=empleado_id, 
             nombre=nombre, 
             apellido=apellido, 
+            cedula=cedula,
             cargo=cargo, 
             salario=salario,
             correo=correo,
@@ -96,9 +120,12 @@ class EmpleadoController:
             eps=eps,
             afp=afp,
             sede_laboral=sede_laboral,
-            recibe_auxilio_transporte=recibe_auxilio_transporte,
+            recibe_auxilio_transporte=auxilio,
+            codigo_banco=codigo_banco,
+            tipo_cuenta=tipo_cuenta,
+            tipo_documento=tipo_documento,
         )
-        
+
         try:
             self.repo_empleados.actualizar(empleado)
             return {"success": True, "mensaje": f"Empleado {nombre} {apellido} actualizado exitosamente."}
@@ -109,7 +136,7 @@ class EmpleadoController:
         """Elimina un empleado (soft delete)."""
         if not self.repo_empleados.existe(empleado_id):
             return {"success": False, "error": "Empleado no encontrado."}
-        
+
         try:
             self.repo_empleados.eliminar(empleado_id)
             return {"success": True, "mensaje": "Empleado eliminado exitosamente."}
@@ -119,3 +146,8 @@ class EmpleadoController:
     def listar_empleados(self) -> List[Dict[str, object]]:
         """Retorna lista de empleados."""
         return self.obtener_empleados()
+
+    def _cedula_existe(self, cedula: str) -> bool:
+        """Verifica si una cédula ya está registrada."""
+        empleados = self.repo_empleados.obtener_todos()
+        return any(e.cedula == cedula for e in empleados)
