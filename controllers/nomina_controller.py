@@ -2,6 +2,7 @@
 Controlador de liquidación de nómina.
 Maneja el cálculo y persistencia de liquidaciones de nómina.
 """
+import os
 from typing import Dict, List, Optional
 from datetime import date
 from models.domain.empleado import Empleado
@@ -200,7 +201,7 @@ class NominaController:
         fecha_cierre: date,
         ruta_archivo: str,
     ) -> Dict[str, object]:
-        """Exporta a Excel la liquidación más reciente por empleado del período."""
+        """Exporta a Excel la liquidación más reciente y genera los desprendibles PDF por empleado."""
         try:
             registros = self.repo_nomina.obtener_por_periodo(fecha_inicio, fecha_cierre)
             if not registros:
@@ -217,9 +218,42 @@ class NominaController:
                     mas_reciente[r.empleado_id] = r
             registros = list(mas_reciente.values())
 
+            # 1. Crear la carpeta organizada de la quincena (Ej: "desprendibles/quincena_2026_07_15")
+            fecha_corte_str = fecha_cierre.strftime("%Y_%m_%d")
+            carpeta_quincena = os.path.join("desprendibles", f"quincena_{fecha_corte_str}")
+            os.makedirs(carpeta_quincena, exist_ok=True)
+
+            # 2. UNIÓN DE DATOS Y GENERACIÓN DE PDFs (Un solo bucle limpio)
+            for r in registros:
+                empleado_obj = self.repo_empleados.obtener_por_id(r.empleado_id)
+                if empleado_obj:
+                    r.empleado = empleado_obj  # Enlace del objeto para el Excel
+                    
+                    # --- GENERACIÓN DEL PDF INDIVIDUAL ---
+                    try:
+                        from utils.pdf_generator import generar_desprendible_pdf
+                        
+                        # Reemplazamos espacios por guiones bajos para el nombre del archivo
+                        nombre_limpio = f"{empleado_obj.nombre}_{empleado_obj.apellido}".replace(" ", "_")
+                        
+                        # Formato: Nombre_Apellido_YYYY_MM_DD.pdf
+                        nombre_archivo_pdf = f"{nombre_limpio}_{fecha_corte_str}.pdf"
+                        ruta_final_pdf = os.path.join(carpeta_quincena, nombre_archivo_pdf)
+                        
+                        # Generar el PDF en su respectiva carpeta
+                        generar_desprendible_pdf(r, ruta_pdf=ruta_final_pdf)
+                        
+                    except Exception as pdf_error:
+                        print(f"Error generando PDF para {empleado_obj.nombre}: {pdf_error}")
+                else:
+                    # Fallback por seguridad si no encuentra el empleado en BD
+                    r.empleado = None
+
+            # 3. Exportación final al archivo de Excel unificado
             from utils.excel_exporter import exportar_nomina_a_excel
             exportar_nomina_a_excel(registros, fecha_inicio, fecha_cierre, ruta_archivo)
-            return {"success": True, "mensaje": "Nómina exportada exitosamente."}
+            
+            return {"success": True, "mensaje": "Nómina y desprendibles PDF exportados exitosamente."}
 
         except ImportError:
             return {"success": False, "error": "openpyxl no instalado: pip install openpyxl"}

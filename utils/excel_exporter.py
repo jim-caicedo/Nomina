@@ -42,6 +42,19 @@ def exportar_nomina_a_excel(
     wb = openpyxl.Workbook()
     wb.remove(wb.active)  # Eliminar hoja por defecto
 
+    # Bordes delgados comunes para los datos
+    thin_border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin"),
+    )
+
+    # Estilo común para encabezados
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+
     # ========== HOJA 1: RESUMEN ==========
     ws_resumen = wb.create_sheet("Resumen")
 
@@ -108,7 +121,7 @@ def exportar_nomina_a_excel(
     ws_detalle["A2"].alignment = Alignment(horizontal="center", vertical="center")
 
     # Encabezados de tabla
-    headers = [
+    headers_detalle = [
         "Nº",
         "ID Empleado",
         "Periodo Inicio",
@@ -123,26 +136,14 @@ def exportar_nomina_a_excel(
         "Salario Neto",
     ]
 
-    # Estilo para encabezados
-    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-    header_font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
-    header_alignment = Alignment(horizontal="center", vertical="center")
-
     # Escribir encabezados
-    for col_idx, header in enumerate(headers, start=1):
+    for col_idx, header in enumerate(headers_detalle, start=1):
         cell = ws_detalle.cell(row=4, column=col_idx, value=header)
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = header_alignment
 
     # Escribir datos
-    thin_border = Border(
-        left=Side(style="thin"),
-        right=Side(style="thin"),
-        top=Side(style="thin"),
-        bottom=Side(style="thin"),
-    )
-
     for row_idx, registro in enumerate(registros, start=5):
         datos_fila = [
             row_idx - 4,  # Nº
@@ -169,6 +170,93 @@ def exportar_nomina_a_excel(
     column_widths = [6, 12, 15, 15, 12, 15, 18, 12, 15, 12, 12, 15]
     for col_idx, width in enumerate(column_widths, start=1):
         ws_detalle.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = width
+
+    # ========== HOJA 3: ARCHIVO BANCARIO ==========
+    ws_banco = wb.create_sheet("Archivo Bancario")
+
+    # Encabezados de tabla bancaria (17 columnas)
+    headers_banco = [
+        "Cuenta Destino",
+        "Nit Beneficiario",
+        "Nombre Beneficiario",
+        "Cod. Transaccion",
+        "Tipo de cargo",
+        "Valor Neto Pago",
+        "No. Factura",
+        "No. Control de pago",
+        "Valor Retención en la Fuente",
+        "Valor IVA",
+        "Fecha Pago",
+        "Número Nota Débito",
+        "Valor Nota Débito",
+        "Cod. Banco",
+        "Tipo Cuenta",
+        "Tipo Documento",
+        "Inf. Adicional",
+    ]
+
+    # Escribir encabezados en Hoja Bancaria
+    for col, texto in enumerate(headers_banco, start=1):
+        celda = ws_banco.cell(row=1, column=col)
+        celda.value = texto
+        celda.fill = header_fill
+        celda.font = header_font
+        celda.alignment = header_alignment
+
+    # Escribir la información bancaria de los empleados
+    for fila, registro in enumerate(registros, start=2):
+        emp = getattr(registro, "empleado", None)
+        
+        # Mapear los campos de acuerdo al script de SQLite proporcionado
+        numero_cuenta = getattr(emp, "numero_cuenta", "") if emp else ""
+        cedula_emp = getattr(emp, "cedula", "") if emp else ""
+        nombre_completo = f"{getattr(emp, 'nombre', '')} {getattr(emp, 'apellido', '')}".strip() if emp else ""
+        cargo_emp = getattr(emp, "cargo", "") if emp else ""
+        codigo_banco = getattr(emp, "codigo_banco", "") if emp else ""
+        tipo_cuenta = getattr(emp, "tipo_cuenta", "") if emp else ""
+        tipo_documento = getattr(emp, "tipo_documento", "") if emp else ""
+
+        # Distribución limpia alineada 1 a 1 con las 17 columnas superiores
+        datos_banco = [
+            numero_cuenta,                                                      # 1. Cuenta Destino
+            cedula_emp,                                                         # 2. Nit Beneficiario (Cédula)
+            nombre_completo if nombre_completo else f"Empleado {registro.empleado_id}", # 3. Nombre Beneficiario
+            "902",                                                                 # 4. Cod. Transaccion
+            cargo_emp,                                                          # 5. Tipo de cargo (Cargo)
+            registro.salario_neto,                                              # 6. Valor Neto Pago
+            "",                                                                 # 7. No. Factura
+            "",                                                                 # 8. No. Control de pago
+            0,                                                                  # 9. Valor Retención en la Fuente
+            0,                                                                  # 10. Valor IVA
+            registro.periodo_cierre.strftime("%d/%m/%Y"),                       # 11. Fecha Pago
+            "",                                                                 # 12. Número Nota Débito
+            "",                                                                 # 13. Valor Nota Débito
+            codigo_banco,                                                       # 14. Cod. Banco
+            tipo_cuenta,                                                        # 15. Tipo Cuenta
+            tipo_documento,                                                     # 16. Tipo Documento
+            "",                                                                 # 17. Inf. Adicional
+        ]
+
+        for columna, valor in enumerate(datos_banco, start=1):
+            celda = ws_banco.cell(row=fila, column=columna, value=valor)
+            celda.border = thin_border
+            celda.font = Font(name="Arial", size=10)
+            
+            # Formatear alineaciones según el tipo de dato
+            if columna in [1, 2, 6, 9, 10, 13]:  # Cuentas, Cédulas, Valores numéricos
+                celda.alignment = Alignment(horizontal="right", vertical="center")
+            else:  # Textos y códigos cortos
+                celda.alignment = Alignment(horizontal="left", vertical="center")
+
+    # Ajustar ancho de columnas de la Hoja Bancaria
+    anchos_banco = [
+        20, 18, 35, 18, 18, 18, 18, 20, 18, 12, 16, 18, 18, 12, 15, 18, 30
+    ]
+
+    for columna, ancho in enumerate(anchos_banco, start=1):
+        ws_banco.column_dimensions[
+            openpyxl.utils.get_column_letter(columna)
+        ].width = ancho
 
     # Generar nombre de archivo si no se proporciona
     if ruta_archivo is None:
@@ -200,8 +288,6 @@ def exportar_empleados_a_excel(
     except ImportError:
         raise ImportError("openpyxl no está instalado.")
 
-    from datetime import date
-
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Empleados"
@@ -213,7 +299,6 @@ def exportar_empleados_a_excel(
     ws["A1"].alignment = Alignment(horizontal="center")
 
     ws.merge_cells("A2:J2")
-    from datetime import date
     ws["A2"] = f"Fecha de exportación: {date.today().strftime('%d/%m/%Y')}"
     ws["A2"].font = Font(name="Arial", size=11)
     ws["A2"].alignment = Alignment(horizontal="center")

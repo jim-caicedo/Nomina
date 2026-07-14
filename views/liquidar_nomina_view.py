@@ -156,7 +156,7 @@ class LiquidarNominaView:
         # Botones de acción
         botones_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
         botones_frame.grid(row=4, column=0, columnspan=2, padx=12, pady=(0, 16), sticky="ew")
-        botones_frame.grid_columnconfigure((0, 1), weight=1)
+        botones_frame.grid_columnconfigure((0, 1, 2), weight=1) # <- Cambiado a 3 columnas
 
         btn_calcular = ctk.CTkButton(
             botones_frame,
@@ -177,6 +177,18 @@ class LiquidarNominaView:
             fg_color=COLORES["primary"],
         )
         btn_exportar.grid(row=0, column=1, padx=6, sticky="ew")
+
+        # ¡NUEVO BOTÓN DE PDFs DESACTIVADO POR DEFECTO!
+        self.btn_pdfs = ctk.CTkButton(
+            botones_frame,
+            text="📄 Desprendibles PDF",
+            command=self._abrir_desprendibles_folder,
+            height=40,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#4b5563",  # Un tono grisáceo para que denote inactividad visualmente
+            state="disabled"     # <- Desactivado de entrada
+        )
+        self.btn_pdfs.grid(row=0, column=2, padx=6, sticky="ew")
 
         # ========== RESULTADOS ==========
         resultados_header = ctk.CTkLabel(
@@ -403,6 +415,7 @@ class LiquidarNominaView:
                 "Éxito",
                 f"Archivo exportado exitosamente:\n{ruta_archivo}",
             )
+            self.btn_pdfs.configure(state="normal", fg_color=COLORES.get("warning", "#f59e0b"))
         else:
             messagebox.showerror("Error", resultado["error"])
 
@@ -450,3 +463,31 @@ class LiquidarNominaView:
                 anchor="w",
                 text_color=COLORES.get("warning", "#f59e0b"),
             ).grid(row=2, column=0, sticky="w", padx=10, pady=(2, 8))
+
+    def _abrir_desprendibles_folder(self):
+        """Abre la carpeta que contiene los desprendibles PDF en el explorador del sistema."""
+        import os
+        import subprocess
+        import platform
+        
+        fecha_cierre = self.selector_fecha_cierre.get_fecha()
+        fecha_corte_str = fecha_cierre.strftime("%Y_%m_%d")
+        
+        # Apuntamos directo a la carpeta de la quincena calculada
+        ruta_carpeta = os.path.abspath(os.path.join("desprendibles", f"quincena_{fecha_corte_str}"))
+        
+        if os.path.exists(ruta_carpeta):
+            try:
+                # 1. Detectar el sistema operativo actual
+                sistema_actual = platform.system().lower()
+                
+                if "windows" in sistema_actual:
+                    # Comando nativo y seguro para Windows
+                    os.startfile(ruta_carpeta)
+                else:
+                    # Comando nativo para Linux (Tu Kali Linux actual)
+                    subprocess.Popen(["xdg-open", ruta_carpeta])
+            except Exception:
+                messagebox.showinfo("Ruta PDFs", f"Los PDFs están guardados en:\n{ruta_carpeta}")
+        else:
+            messagebox.showerror("Error", "No se encontró la carpeta de desprendibles para este período.")
