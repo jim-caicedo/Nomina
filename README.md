@@ -1,23 +1,29 @@
-# IMPLEMENTACIÓN COMPLETADA: Sistema de Nómina con SQLite
+```markdown
+# IMPLEMENTACIÓN COMPLETADA: Sistema de Nómina con SQLite & Reportes Avanzados
 
 ## 📊 Resumen del Proyecto
 
-Sistema integral de gestión de nómina para empresas colombianas, implementado en Python con `customtkinter` para la interfaz gráfica y `SQLite` para persistencia de datos.
+Sistema integral de gestión de nómina para empresas colombianas, implementado en Python con `customtkinter` para la interfaz gráfica, `SQLite` para persistencia de datos, y módulos avanzados de exportación de reportes.
 
 ### Características Principales
 
 ✅ **CRUD de Empleados**: Crear, leer, actualizar, eliminar empleados con todos sus datos  
-✅ **Cálculo de Nómina**: Liquidación quincenal según leyes colombianas  
-✅ **Configuración Legal**: Gestión centralizada de parámetros que cambian anualmente  
+✅ **Cálculo de Nómina**: Liquidación quincenal automática según leyes colombianas  
+✅ **Configuración Legal**: Gestión centralizada de parámetros anuales  
 ✅ **Historial de Cambios**: Auditoría completa de modificaciones de configuración  
 ✅ **Validaciones**: Validaciones automáticas en todos los niveles (UI, negocio, BD)  
 ✅ **Interfaz Responsiva**: UI moderna con `customtkinter` y temas oscuros  
+✅ **Módulo de Reportes Excel**: Exportación unificada de la quincena compatible con la banca  
+✅ **Desprendibles PDF**: Generación automática de colillas de pago individuales por empleado  
+✅ **Soporte Multiplataforma**: Sistema inteligente optimizado tanto para entornos de desarrollo Linux (Kali) como para despliegues de producción en Windows  
 
 ---
 
 ## 🏗️ Arquitectura del Proyecto
 
+
 ```
+
 NominaSG/
 ├── app.py                           # Punto de entrada
 ├── requirements.txt
@@ -35,17 +41,22 @@ NominaSG/
 │   └── configuracion_repository.py  # Repositorio SQLite
 ├── services/
 │   └── nomina_calculator.py         # Cálculos de nómina
+├── utils/
+│   ├── excel_exporter.py           # Exportador de libros Excel (.xlsx)
+│   └── pdf_generator.py            # Motor de renderizado de PDFs (ReportLab)
 ├── controllers/
 │   ├── main_controller.py           # Controlador principal
 │   └── configuracion_controller.py  # Controlador configuración
 ├── views/
 │   ├── main_view.py                 # Ventana principal
 │   ├── crud_empleado_view.py        # Vista CRUD empleados
-│   ├── liquidar_nomina_view.py      # Vista liquidación
+│   ├── liquidar_nomina_view.py      # Vista liquidación con control dinámico de estados
 │   └── configuracion_view.py        # Vista configuración
 ├── data/
 │   └── nomina.db                    # Base de datos SQLite
+├── desprendibles/                   # Carpetas automatizadas generadas por período
 └── MIGRACION_SQLITE.md              # Documentación técnica
+
 ```
 
 ---
@@ -102,9 +113,11 @@ class Empleado:
     auxilio_transporte_mensual: float = 161916.0
     fecha_ingreso: str = ""
     horas_extra: float = 0.0
+
 ```
 
 ### ConfiguracionNomina
+
 ```python
 @dataclass
 class ConfiguracionNomina:
@@ -116,10 +129,13 @@ class ConfiguracionNomina:
     porcentaje_eps: float = 0.04        # 4%
     fecha_creacion: Optional[str] = None
     activa: bool = True
+
 ```
 
 ### RegistroNomina
+
 Almacena resultado de una liquidación para un empleado.
+
 ```python
 @dataclass
 class RegistroNomina:
@@ -138,6 +154,7 @@ class RegistroNomina:
     otros_descuentos: float
     total_deducciones: float
     salario_neto: float
+
 ```
 
 ---
@@ -145,223 +162,117 @@ class RegistroNomina:
 ## 📐 Fórmulas de Cálculo (Ley Colombiana)
 
 ### Devengados
+
 ```
 Ordinario = (Salario Base / 30) × Días Laborados
 Auxilio Transporte = (Auxilio Mensual / 30) × Días Laborados
 Horas Extras = Valor Hora Extra × Cantidad
 Total Devengado = Ordinario + Auxilio + Horas Extras
+
 ```
 
 ### Deducciones
+
 ```
 AFP = Ordinario × 4%          (SOLO sobre ordinario, no auxilio)
 EPS = Ordinario × 4%          (SOLO sobre ordinario, no auxilio)
 Total Deducciones = AFP + EPS + Otros Descuentos
+
 ```
 
 ### Salario Neto
+
 ```
 Salario Neto = Total Devengado - Total Deducciones
-```
 
-### Ejemplo Validado
-- Salario: $1.750.905
-- Días laborados: 15
-- Resultado esperado:
-  - Ordinario: $875.453
-  - Auxilio: $124.953
-  - Deducciones: $70.036 (4% + 4% AFP + EPS sobre ordinario)
-  - Neto: $930.370 ✓
+```
 
 ---
 
 ## 🎯 Funcionalidades Principales
 
 ### 1. Gestión de Empleados
-- **Crear**: Nuevo empleado con todos sus datos
-- **Leer**: Visualizar lista de todos los empleados
-- **Actualizar**: Modificar datos de empleado existente
-- **Eliminar**: Remover empleado del sistema
 
-**Datos Capturados**:
-- Nombre y apellido (por separado)
-- Cargo
-- Salario base
-- Contacto (correo, teléfono)
-- Número de cuenta
-- EPS y AFP
-- Sede laboral
-- Auxilio transporte personalizado
-- Fecha de ingreso
+* **Operaciones CRUD completas** con interfaz gráfica adaptada.
+* **Datos Avanzados**: Manejo de cuentas bancarias, sedes, entidades de salud (EPS) y pensiones (AFP).
 
 ### 2. Liquidación de Nómina
-- Interfaz para ingresar período y días laborados
-- Cálculo automático para todos los empleados
-- Tabla de resultados con:
-  - Ordinario
-  - Auxilio transporte
-  - Horas extras
-  - Total devengado
-  - Deducciones (AFP + EPS)
-  - Salario neto
-- Totales acumulados del período
 
-### 3. Configuración Legal
-- **Formulario para actualizar**:
-  - Año vigente
-  - SMMLV (Salario Mínimo)
-  - Auxilio transporte
-  - Porcentaje AFP
-  - Porcentaje EPS
-  
-- **Historial de Configuraciones**:
-  - Ver todas las configuraciones guardadas
-  - Marcar cuál está activa
-  - Fechas de creación
-  
-- **Historial de Cambios**:
-  - Qué cambió
-  - Valor anterior vs nuevo
-  - Cuándo cambió
-  - Quién lo hizo
+* Cálculo automático en lote para toda la planilla activa basándose en el rango de fechas.
+* Visualización interactiva previa en un contenedor scrollable moderno.
 
-### 4. Dashboard
-- Resumen de empleados activos
-- Gasto total mensual
-- Salario promedio
+### 3. Módulo de Exportación y Reportes Automatizados 🚀
+
+* **Exportación a Excel**: Estructura libros unificados por quincena utilizando `openpyxl`.
+* **Desprendibles PDF Masivos**: Generación en paralelo de las colillas de pago individuales. El sistema crea automáticamente directorios organizados por fecha de corte (`desprendibles/quincena_AAAA_MM_DD/`) y guarda cada archivo con una nomenclatura limpia: `Nombre_Apellido_FechaCorte.pdf`.
+* **Control de Flujo UI**: El botón de acceso a los PDFs permanece bloqueado protegiendo el ciclo de la aplicación y solo se activa tras una escritura de datos exitosa.
+
+### 4. Configuración Legal & Auditoría
+
+* Actualización de parámetros globales en caliente con bitácora relacional automática de valores anteriores y nuevos.
 
 ---
 
-## 🔐 Seguridad y Auditoría
+## 🔐 Seguridad y Multiplataforma
 
-✅ **Historial Completo**: Todos los cambios de configuración quedan registrados  
-✅ **Auditoría**: Cada cambio tiene timestamp y usuario  
-✅ **Transacciones**: SQLite garantiza integridad de datos  
-✅ **Validaciones Multinivel**:
-   - UI: Validación en entrada
-   - Lógica: Validación en controladores
-   - BD: Constraints SQL  
-✅ **Una Sola Configuración Activa**: Sistema evita conflictos  
-✅ **Nunca se Eliminan Datos**: Histórico completo para auditoría
+✅ **Historial Completo**: Todos los cambios de configuración quedan registrados
+
+✅ **Auditoría**: Cada cambio tiene timestamp y usuario
+
+✅ **Transacciones**: SQLite garantiza integridad de datos
+
+✅ **Estrategia Multiplataforma**: El sistema detecta mediante la capa `platform` el OS en ejecución. En sistemas Linux invoca subprocesos `xdg-open` y en entornos Windows conmuta dinámicamente a la API nativa `os.startfile`, garantizando estabilidad total pre-compilación.
 
 ---
 
 ## 🚀 Cómo Usar
 
-### Instalación
-```bash
+### Instalación de dependencias
 
-### Ejecutar Aplicación
 ```bash
-python app.py
+pip install customtkinter openpyxl tkcalendar babel reportlab pyinstaller
+
 ```
 
-### Correr Demo de SQLite
+### Ejecutar Aplicación
+
 ```bash
-python demo_sqlite.py
+python app.py
+
+```
+
+### Compilación para Producción (Windows)
+
+Para generar el ejecutable standalone (`.exe`) limpio y sin ventanas de comando en segundo plano:
+
+```bash
+pyinstaller --noconsole --onefile app.py
+
 ```
 
 ---
 
-## 📦 Dependencias
+## 📦 Dependencias Core
 
 ```
 customtkinter==5.2.2
+openpyxl==3.1.2
+reportlab==4.1.0
+tkcalendar==1.6.1
+
 ```
 
 ---
 
-## 🎨 Interfaz de Usuario
+## ✨ Mejoras Futuras (Siguiente Versión)
 
-Construida con `customtkinter` para mejor experiencia:
-- **Tema Oscuro**: Interfaz moderna y cómoda
-- **Navegación por Sidebar**: Acceso rápido a todas las secciones
-- **Formularios Responsivos**: Se adaptan a cualquier tamaño
-- **Tablas Interactivas**: Scroll, edición, eliminación
-- **Diálogos Modales**: Para confirmaciones e historial
+* [ ] Módulo integrado de liquidación de prestaciones sociales (Primas, Cesantías e Intereses).
+* [ ] Módulo para cálculo de liquidaciones definitivas por retiro de personal.
+* [ ] Integración directa con pasarelas de dispersión bancaria.
+* [ ] Sistema multiusuario con control de roles y permisos.
 
 ---
 
-## 📝 Validaciones Implementadas
+## 👨‍💻 Autor: Jim Alejandro Caicedo Osorio
 
-### Empleados
-- Nombre y apellido requeridos
-- Salario mayor a 0
-- Formato de email válido (opcional)
-- Teléfono como cadena (opcional)
-
-### Nómina
-- Fecha inicio < Fecha cierre
-- Días laborados entre 1 y 30
-- Horas extras >= 0
-- Salario empleado >= 0
-
-### Configuración
-- Año entre 2020 y 2050
-- SMMLV mayor a 0
-- Auxilio >= 0
-- Porcentajes AFP/EPS entre 0% y 10%
-
----
-
-## 🔄 Flujo de Procesos
-
-### Liquidación de Nómina
-1. Usuario ingresa período (fecha inicio - fecha cierre)
-2. Sistema valida período
-3. Obtiene configuración activa de BD
-4. Para cada empleado:
-   - Calcula ordinario
-   - Calcula auxilio transporte
-   - Calcula horas extras
-   - Calcula deducciones (AFP + EPS)
-   - Calcula salario neto
-5. Almacena registros en BD
-6. Muestra tabla con resultados
-
-### Actualización de Configuración
-1. Usuario modifica parámetros
-2. Controlador valida datos
-3. Obtiene configuración activa anterior
-4. **Desactiva** anterior (activa=0)
-5. **Inserta** nueva (activa=1)
-6. **Registra cambios** en historial
-7. Cambios aplican automáticamente
-
----
-
-## 📊 Estadísticas del Proyecto
-
-- **Archivos de Código**: 14 archivos Python
-- **Líneas de Código**: ~2000+ líneas
-- **Tablas BD**: 2 tablas SQLite
-- **Validaciones**: 30+ validaciones
-- **Modelos de Datos**: 4 dataclasses
-- **Vistas**: 4 interfaces gráficas
-- **Controladores**: 2 controladores
-- **Servicios**: 1 calculadora de nómina
-
----
-
-## ✨ Mejoras Futuras
-
-- [ ] Exportar nómina a Excel
-- [ ] Generador de PDF
-- [ ] Reportes por período
-- [ ] Integración con banco
-- [ ] Multiusuario con roles
-- [ ] Backup automático
-- [ ] Reversión de cambios (rollback)
-- [ ] Búsqueda avanzada en historial
-
----
-
-## 👨‍💻 Autor Jim Alejandro Caicedo osorio
-
-Desarrollado como sistema integral de gestión de nómina para cumplir con requisitos legales colombianos.
-
----
-
-## 📞 Soporte
-
-Para reportar bugs o sugerencias, revisar los archivos de log o la documentación en `MIGRACION_SQLITE.md`.
+Desarrollado con arquitectura limpia y robusta, diseñado para cumplir estrictamente con los requisitos normativos del entorno empresarial colombiano.
