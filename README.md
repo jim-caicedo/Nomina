@@ -356,7 +356,7 @@ Construida con `customtkinter` para mejor experiencia:
 
 ---
 
-## 👨‍💻 Autor
+## 👨‍💻 Autor Jim Alejandro Caicedo osorio
 
 Desarrollado como sistema integral de gestión de nómina para cumplir con requisitos legales colombianos.
 
