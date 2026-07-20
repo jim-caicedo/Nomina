@@ -1,0 +1,41 @@
+# =========================================================================
+# GITIGNORE PARA NOMINASG (PYTHON + SQLITE + CUSTOMTKINTER)
+# =========================================================================
+
+# --- Entornos Virtuales ---
+.venv/
+venv/
+ENV/
+env/
+
+# --- Caché de Python ---
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Bases de Datos Locales (SQLite) ---
+# Evita subir tu base de datos local con datos de prueba o producción
+*.db
+*.sqlite
+*.sqlite3
+
+# --- Archivos Generados (PDFs) ---
+# Evita que las colillas de pago/desprendibles de prueba terminen en el repositorio
+*.pdf
+desprendibles/
+desprendible_*.pdf
+
+# --- Configuración de IDEs y Editores ---
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# --- Sistema Operativo (Basura de OS) ---
+.DS_Store
+Thumbs.db
+db.log

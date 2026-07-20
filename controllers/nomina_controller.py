@@ -17,6 +17,7 @@ from models.repositories.sqlite.concepto_repository_sqlite import (
 )
 from models.services.calculadora_nomina import CalculadoraNomina
 from controllers.configuracion_controller import ConfiguracionController
+from controllers.concepto_controller import ConceptoController
 from database.db_manager import DBManager
 
 
@@ -30,6 +31,7 @@ class NominaController:
         self.repo_conceptos_emp = ConceptoEmpleadoRepositorySQLite(db)       # fix: faltaba
         self.repo_registro_conceptos = RegistroConceptoRepositorySQLite(db)
         self.config_controller = ConfiguracionController()
+        self.concepto_controller = ConceptoController()
 
     # ------------------------------------------------------------------
     # helpers privados
@@ -182,6 +184,11 @@ class NominaController:
                         "error": f"Error al calcular nómina de "
                                  f"{empleado.get_nombre_completo()}: {str(e)}",
                     }
+            limpieza = self.concepto_controller.desvincular_todos_los_conceptos()
+            if not limpieza["success"]:
+                print(f"⚠️ Alerta: Nómina liquidada, pero falló la desasociación lógica: {limpieza['error']}")
+            else:
+                print("✅ Conceptos de empleados desactivados (borrado lógico) correctamente. ¡Mesa limpia!")
 
             return {
                 "success": True,

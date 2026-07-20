@@ -224,9 +224,10 @@ class RegistroConceptoRepositorySQLite:
         return RegistroConceptoNomina(
             id=safe_get("id", None),
             registro_nomina_id=safe_get("registro_nomina_id", 0),
+            concepto_id=safe_get("concepto_id", None),
             concepto_nombre=safe_get("concepto_nombre", ""),
             tipo=safe_get("tipo", ""),
-            naturaleza=safe_get("naturaleza", "devengado"),
+            naturaleza=safe_get("naturaleza", "devengado").strip().lower(),
             valor_calculado=safe_get("valor_calculado", 0.0),
             metadata=safe_get("metadata", None),
         )

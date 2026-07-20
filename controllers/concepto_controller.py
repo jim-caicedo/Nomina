@@ -108,6 +108,26 @@ class ConceptoController:
             return []
         asignaciones = self._repo_conceptos_emp.obtener_por_empleado(empleado_id)
         return [asdict(a) for a in asignaciones]
+    
+    def desvincular_todos_los_conceptos(self) -> Dict[str, object]:
+        """
+        Desactiva (borrado lógico) todas las asignaciones de conceptos activas.
+        Se ejecuta al finalizar la liquidación de la quincena para dejar la mesa limpia.
+        """
+        try:
+            # Usamos la conexión del DBManager a través de nuestro repositorio existente
+            conn = self._repo_conceptos_emp.db.get_connection()
+            cursor = conn.cursor()
+            
+            # Cambiamos activo a 0 (Falso) para todas las asignaciones de empleados
+            cursor.execute("UPDATE conceptos_empleado SET activo = 0 WHERE activo = 1")
+            conn.commit()
+            
+            return {"success": True}
+        except Exception as e:
+            if 'conn' in locals():
+                conn.rollback()
+            return {"success": False, "error": f"Error al desactivar conceptos: {e}"}
 
     # Exponer repositorios para operaciones directas desde vistas
     @property
