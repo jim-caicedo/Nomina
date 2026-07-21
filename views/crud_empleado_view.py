@@ -383,9 +383,10 @@ class CrudEmpleadoView:
 
         self.empleado_seleccionado_id = empleado_id
 
-        # Cargar todos los campos
-        self._set_entry(self.entrada_tipo_documento, empleado.get('tipo_documento', 'CC - Cédula de Ciudadanía'))
-        self._set_entry(self.entrada_cedula, empleado.get('cedula', ''))
+        # Cargar todos los campos accediendo directamente a los atributos del objeto Empleado
+        # Usamos getattr con valor por defecto por si algún campo viene None
+        self._set_entry(self.entrada_tipo_documento, getattr(empleado, 'tipo_documento', 'CC - Cédula de Ciudadanía') or 'CC - Cédula de Ciudadanía')
+        self._set_entry(self.entrada_cedula, getattr(empleado, 'cedula', ''))
         self._set_entry(self.entrada_nombre, empleado.nombre)
         self._set_entry(self.entrada_apellido, empleado.apellido)
         self._set_entry(self.entrada_cargo, empleado.cargo)
@@ -395,8 +396,8 @@ class CrudEmpleadoView:
         self._set_entry(self.entrada_numero_cuenta, empleado.numero_cuenta)
         self._set_entry(self.entrada_eps, empleado.eps)
         self._set_entry(self.entrada_afp, empleado.afp)
-        self._set_entry(self.entrada_codigo_banco, empleado.get('codigo_banco', ''))
-        self._set_entry(self.entrada_tipo_cuenta, empleado.get('tipo_cuenta', 'Ahorros'))
+        self._set_entry(self.entrada_codigo_banco, getattr(empleado, 'codigo_banco', ''))
+        self._set_entry(self.entrada_tipo_cuenta, getattr(empleado, 'tipo_cuenta', 'Ahorros'))
 
         if empleado.recibe_auxilio_transporte:
             self.checkbox_auxilio.select()
